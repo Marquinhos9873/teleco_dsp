@@ -1,0 +1,3 @@
+# Sitio estático sin build step. Todo lo que está en src/ se publica tal cual.
+[build]
+  publish = "src"

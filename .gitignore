@@ -1,0 +1,5 @@
+.env
+*.local
+.netlify/
+node_modules/
+secrets.h

@@ -1,0 +1,1369 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=2892159a-e16e-40d9-acc4-0fe3dd55f885
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta property="og:image" content="https://teleco2-senalesysistemas.netlify.app/.netlify/og-image/fd5dbeac856943ec69482435903e9ff5.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C1001 · Gemelo digital | Proyecto universitario</title>
+<meta name="description" content="Simulador académico del sistema C1001 de asistencia no invasiva: gemelo 3D, escenarios, diagrama eléctrico y lógica de ESP32 y Blynk.">
+<meta property="og:site_name" content="C1001 · Gemelo digital">
+<meta property="og:title" content="C1001 · Gemelo digital | Proyecto universitario">
+<meta property="og:description" content="Exploración interactiva de un sistema de asistencia no invasiva con radar C1001, ESP32 y Blynk. Proyecto universitario con datos simulados.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0A7470">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script src="/assets/vendor/three.min.js"></script>
+<script src="/assets/vendor/OrbitControls.js"></script>
+<style>
+/* Layout: barra superior con pestañas y selector de modo global; cada pestaña es una vista del mismo sistema simulado (3D, escenas + panel Blynk, diagrama eléctrico, lógica, catálogo). */
+:root{
+  --bg:#EDF2F2; --surface:#FFFFFF; --sunk:#F5F8F8; --ink:#13232A; --muted:#566A72; --line:#D2DCDE;
+  --signal:#0A7470; --signal-soft:rgba(10,116,112,.12);
+  --night:#4A4FB8; --night-soft:rgba(74,79,184,.12);
+  --ok:#2E7D4F; --warn:#A86A12; --crit:#C03A28; --crit-soft:rgba(192,58,40,.12);
+  --uart:#C7861A; --i2c:#7A4FB8; --pwr:#C03A28;
+  --room:#F7FAFA; --floor:#B9C7CA; --body:#2B3E46; --stage:#E3EBEC;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1518; --surface:#142026; --sunk:#101A1F; --ink:#E2EBED; --muted:#8FA2A9; --line:#26373E;
+  --signal:#45C2B8; --signal-soft:rgba(69,194,184,.14);
+  --night:#9196F2; --night-soft:rgba(145,150,242,.15);
+  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15);
+  --uart:#E8B04D; --i2c:#B08CF0; --pwr:#F2735B;
+  --room:#111C21; --floor:#3A4D54; --body:#C9D6DA; --stage:#0F191D; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1518; --surface:#142026; --sunk:#101A1F; --ink:#E2EBED; --muted:#8FA2A9; --line:#26373E;
+  --signal:#45C2B8; --signal-soft:rgba(69,194,184,.14);
+  --night:#9196F2; --night-soft:rgba(145,150,242,.15);
+  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15);
+  --uart:#E8B04D; --i2c:#B08CF0; --pwr:#F2735B;
+  --room:#111C21; --floor:#3A4D54; --body:#C9D6DA; --stage:#0F191D; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0;text-wrap:balance}
+h1{font-size:1.25rem;font-weight:800}
+h2{font-size:1.35rem;font-weight:700}
+h3{font-size:1.02rem;font-weight:700}
+p{margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
+/* Barra superior */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line);padding-inline:16px;padding-block:10px;display:grid;gap:10px}
+.tb-row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;max-width:1400px;width:100%;margin:0 auto}
+.brand{display:flex;gap:10px;align-items:center;min-width:0}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--signal);display:grid;place-items:center;flex:none}
+.logo svg{width:22px;height:22px}
+.brand small{display:block;font-size:.75rem;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{font-family:var(--f-mono);font-size:.72rem;padding:3px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.chip.live{color:var(--ok);border-color:currentColor}
+.chip.dim{color:var(--signal);border-color:currentColor}
+.tabs{display:flex;gap:4px;overflow-x:auto;max-width:100%;padding:3px;border:1px solid var(--line);border-radius:12px;background:var(--sunk)}
+.tabs button{border:0;background:transparent;border-radius:9px;padding:6px 12px;cursor:pointer;white-space:nowrap;font-size:.88rem}
+.tabs button[aria-selected="true"]{background:var(--signal);color:var(--surface);font-weight:700}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:12px;padding:3px;background:var(--sunk);gap:3px}
+.seg button{border:0;background:transparent;border-radius:9px;padding:5px 12px;cursor:pointer;font-size:.86rem;white-space:nowrap}
+.seg button b{font-family:var(--f-display);font-stretch:80%}
+.seg button[aria-pressed="true"]{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.seg button[data-mode="FALL"][aria-pressed="true"] b{color:var(--signal)}
+.seg button[data-mode="SLEEP"][aria-pressed="true"] b{color:var(--night)}
+.statusline{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:.84rem;max-width:1400px;width:100%;margin:0 auto}
+.statusline label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.minibar{flex:1 1 140px;max-width:260px;height:5px;border-radius:99px;background:var(--line);overflow:hidden}
+.minibar i{display:block;height:100%;width:100%;background:var(--signal);transition:width .1s linear}
+#status{font-weight:700}
+
+.wrap{max-width:1400px;margin:0 auto;padding-inline:16px;padding-block:18px 40px;display:grid;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:14px;min-width:0}
+.head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 16px;align-items:end}
+.head p{color:var(--muted);font-size:.9rem;max-width:64ch}
+.disclaimer{font-size:.8rem;color:var(--warn)}
+.btn{border:1px solid var(--line);background:var(--sunk);border-radius:10px;padding:6px 11px;cursor:pointer;font-size:.86rem}
+.btn:hover{border-color:var(--muted)}
+.btn[aria-pressed="true"]{border-color:var(--signal);background:var(--signal-soft)}
+.btn.danger{border-color:var(--crit);color:var(--crit)}
+.btn.danger:hover{background:var(--crit-soft)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.caption{font-size:.8rem;color:var(--muted)}
+
+/* Gemelo 3D */
+.twin{display:grid;grid-template-columns:260px minmax(0,1fr) 320px;gap:14px;align-items:start}
+.stage-card{padding:0;overflow:hidden;gap:0}
+.stage-tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.stage{position:relative;height:min(64vh,560px);min-height:340px;background:radial-gradient(ellipse at 50% 40%,var(--surface),var(--stage));touch-action:none;overflow:hidden}
+.stage canvas{display:block;width:100%;height:100%}
+.marker{position:absolute;transform:translate(-50%,-50%);width:28px;height:28px;border-radius:50%;border:2px solid var(--surface);background:var(--signal);color:var(--surface);font-family:var(--f-mono);font-weight:600;font-size:.8rem;display:grid;place-items:center;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.25);padding:0}
+.marker.sel{background:var(--warn);transform:translate(-50%,-50%) scale(1.15)}
+.marker[hidden]{display:none!important}
+.stage-note{position:absolute;left:10px;bottom:10px;font-family:var(--f-mono);font-size:.7rem;color:var(--muted);background:color-mix(in srgb,var(--surface) 80%,transparent);padding:4px 8px;border-radius:8px}
+.nogl{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--muted)}
+.tour{display:grid;gap:10px}
+.tour-step{font-size:.88rem;display:grid;gap:4px}
+.tour-dots{display:flex;gap:5px}
+.tour-dots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.tour-dots i.on{background:var(--signal)}
+.comp-list{display:grid;gap:4px;max-height:320px;overflow:auto}
+.comp-list button{display:flex;gap:8px;align-items:center;text-align:left;border:1px solid transparent;background:transparent;border-radius:9px;padding:5px 7px;cursor:pointer;font-size:.85rem}
+.comp-list button:hover{background:var(--sunk)}
+.comp-list button.sel{border-color:var(--signal);background:var(--signal-soft)}
+.num{flex:none;width:22px;height:22px;border-radius:50%;background:var(--signal);color:var(--surface);font-family:var(--f-mono);font-size:.72rem;display:grid;place-items:center}
+.ficha{display:grid;gap:10px;font-size:.88rem}
+.ficha .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ficha .kv div{border:1px solid var(--line);border-radius:10px;padding:7px 9px;background:var(--sunk);min-width:0}
+.ficha .kv span{display:block;font-family:var(--f-mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ficha .kv b{font-family:var(--f-mono);font-size:.8rem;font-weight:600;overflow-wrap:anywhere}
+.state{display:inline-block;font-family:var(--f-mono);font-size:.72rem;padding:2px 8px;border-radius:99px;border:1px solid currentColor}
+.state.probado{color:var(--ok)} .state.pendiente{color:var(--warn)} .state.propuesto{color:var(--night)} .state.desarrollo{color:var(--signal)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:.78rem;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+/* Escenas (heredado del piloto) */
+.main{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:18px;align-items:start}
+.tag{font-family:var(--f-mono);font-size:.72rem;padding:3px 8px;border-radius:99px;border:1px solid currentColor;width:fit-content}
+.tag.fall{color:var(--signal)} .tag.sleep{color:var(--night)}
+#sceneSleep .btn[aria-pressed="true"]{border-color:var(--night);background:var(--night-soft)}
+.sliders{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:.86rem}
+.sliders label{display:grid;gap:2px;min-width:180px}
+.sliders input{accent-color:var(--signal);width:100%}
+#sceneSleep .sliders input{accent-color:var(--night)}
+.views{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.view{background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:8px;display:grid;gap:4px;min-width:0}
+.view svg{width:100%;height:auto;display:block;touch-action:none}
+.scene-wrap{position:relative;display:grid;gap:14px}
+.overlay{position:absolute;inset:0;background:color-mix(in srgb,var(--surface) 84%,transparent);display:grid;place-items:center;text-align:center;border-radius:12px;padding:20px;z-index:2}
+.overlay div{max-width:46ch;display:grid;gap:6px}
+.wave{width:100%;height:96px;display:block;background:var(--sunk);border:1px solid var(--line);border-radius:12px}
+.phone{background:var(--surface);border:1px solid var(--line);border-radius:30px;padding:14px;display:grid;gap:12px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 120px);box-shadow:0 10px 30px rgba(10,30,40,.08)}
+.phone-bar{display:flex;justify-content:space-between;align-items:center;padding:4px 6px}
+.phone-bar b{font-family:var(--f-display);font-stretch:85%;font-size:1.1rem}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:6px}
+.group{display:grid;gap:8px}
+.group-h{display:flex;justify-content:space-between;align-items:baseline;padding-inline:4px;gap:8px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tile{border:1px solid var(--line);border-radius:14px;padding:9px 11px;background:var(--sunk);display:grid;gap:2px;min-width:0;transition:border-color .3s,background .3s}
+.tile .pin{font-family:var(--f-mono);font-size:.68rem;color:var(--muted);display:flex;justify-content:space-between;gap:6px}
+.tile .val{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:1.35rem;line-height:1.15;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tile .val small{font-family:var(--f-body);font-size:.75rem;font-weight:400;color:var(--muted)}
+.tile .note{font-size:.72rem;color:var(--muted)}
+.tile.off{opacity:.45}
+.tile.flash{border-color:var(--signal)}
+.tile.crit{border-color:var(--crit);background:var(--crit-soft)}
+.tile.crit .val{color:var(--crit)}
+.tile.warn .val{color:var(--warn)}
+.tile.okv .val{color:var(--ok)}
+.spark{width:100%;height:30px;display:block}
+.switch-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:14px;padding:9px 11px;background:var(--sunk)}
+.switch{display:inline-flex;align-items:center;cursor:pointer;border:0;background:none;padding:0}
+.switch .trk{width:42px;height:24px;border-radius:99px;background:var(--signal);position:relative;transition:background .2s}
+.switch .trk i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+.switch[aria-checked="true"] .trk{background:var(--night)}
+.switch[aria-checked="true"] .trk i{left:21px}
+.notifs{display:grid;gap:6px;max-height:190px;overflow:auto}
+.notif{border:1px solid var(--line);border-radius:12px;padding:7px 10px;font-size:.82rem;background:var(--sunk);display:grid;gap:1px}
+.notif.crit{border-color:var(--crit)}
+.notif time{font-family:var(--f-mono);font-size:.7rem;color:var(--muted)}
+.empty{font-size:.82rem;color:var(--muted);padding:4px}
+.toast{position:absolute;left:12px;right:12px;top:12px;z-index:5;background:var(--ink);color:var(--surface);border-radius:16px;padding:10px 14px;font-size:.86rem;box-shadow:0 8px 24px rgba(0,0,0,.25);display:grid;gap:2px}
+.env-sel{display:flex;gap:8px;align-items:center;font-size:.8rem;padding-inline:4px;flex-wrap:wrap}
+.env-sel select{border:1px solid var(--line);border-radius:8px;background:var(--sunk);padding:4px 6px;max-width:100%}
+.extras{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:400}
+td code{font-family:var(--f-mono);font-size:.8rem}
+td.v{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dest{font-size:.72rem;border-radius:99px;padding:2px 7px;border:1px solid var(--line);white-space:nowrap}
+.dest.b{color:var(--signal);border-color:currentColor}
+.csv{font-family:var(--f-mono);font-size:.78rem;background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-height:220px;white-space:pre;overflow-x:auto;line-height:1.6}
+.csv .h{color:var(--muted)}
+
+/* Diagrama eléctrico */
+.elec-wrap{overflow-x:auto;background:var(--sunk);border:1px solid var(--line);border-radius:12px}
+.elec{display:block;width:100%;min-width:760px;height:auto}
+.elec .blk{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.elec .blk.main{stroke:var(--signal);stroke-width:2}
+.elec .blk.future{stroke-dasharray:6 5}
+.elec text{fill:var(--ink);font-family:var(--f-body);font-size:14px}
+.elec .t-b{font-family:var(--f-display);font-weight:700;font-size:17px}
+.elec .t-m{font-family:var(--f-mono);font-size:11.5px;fill:var(--muted)}
+.elec .t-pin{font-family:var(--f-mono);font-size:11.5px;fill:var(--ink)}
+.elec .w{fill:none;stroke-width:3;stroke-linecap:round}
+.elec .w.pwr{stroke:var(--pwr)} .elec .w.gnd{stroke:var(--muted);stroke-dasharray:2 4}
+.elec .w.uart{stroke:var(--uart)} .elec .w.i2c{stroke:var(--i2c)} .elec .w.rf{stroke:var(--signal);stroke-dasharray:6 6}
+.elec .w.live{stroke-dasharray:10 8;animation:flow .6s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-36}}
+.elec .val{font-family:var(--f-mono);font-size:12px;fill:var(--signal);font-weight:600}
+
+/* Lógica */
+.logic{display:grid;gap:0;justify-items:center}
+.lg{width:min(640px,100%);border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;align-items:start;transition:border-color .25s,background .25s,box-shadow .25s}
+.lg .n{width:28px;height:28px;border-radius:9px;background:var(--sunk);border:1px solid var(--line);display:grid;place-items:center;font-family:var(--f-mono);font-size:.78rem;grid-row:span 2}
+.lg b{font-family:var(--f-display);font-stretch:85%;font-size:1.02rem}
+.lg p{font-size:.84rem;color:var(--muted);grid-column:2/4}
+.lg code{font-family:var(--f-mono);font-size:.78rem}
+.lg .kind{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.lg.dec{border-style:dashed}
+.lg.on{border-color:var(--signal);background:var(--signal-soft);box-shadow:0 0 0 3px var(--signal-soft)}
+.lg.on .n{background:var(--signal);color:var(--surface);border-color:var(--signal)}
+.lg.alert{border-color:var(--crit);background:var(--crit-soft)}
+.arrow{width:2px;height:18px;background:var(--line);position:relative}
+.arrow::after{content:"";position:absolute;bottom:-1px;left:-4px;border:5px solid transparent;border-top-color:var(--line)}
+.branch{font-family:var(--f-mono);font-size:.7rem;color:var(--muted);padding:2px 0}
+
+@media (max-width:1180px){
+  .twin{grid-template-columns:minmax(0,1fr) 320px}
+  .twin .side-left{grid-column:1/-1;order:3}
+}
+@media (max-width:1000px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .phone{position:relative;top:0;max-width:440px;width:100%;justify-self:center}
+  .extras{grid-template-columns:minmax(0,1fr)}
+  .twin{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:720px){
+  .views{grid-template-columns:minmax(0,1fr)}
+  .stage{height:52vh}
+  .topbar .statusline .minibar{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .elec .w.live{animation:none}
+  .minibar i,.switch .trk,.switch .trk i,.tile,.lg{transition:none}
+}
+/* Presentación académica y accesibilidad */
+[hidden]{display:none!important}
+body{margin:0}
+.skip-link{position:fixed;top:8px;left:8px;z-index:100;padding:10px 16px;background:var(--ink);color:var(--surface);transform:translateY(-160%)}
+.skip-link:focus{transform:translateY(0)}
+.topbar{border-top:4px solid var(--signal)}
+.academic-intro{display:flex;justify-content:space-between;gap:24px;align-items:end;padding:12px 0 22px;border-bottom:1px solid var(--line)}
+.academic-intro h2{font-size:clamp(1.6rem,3vw,2.4rem);margin:8px 0 10px;letter-spacing:-.03em}
+.academic-intro p{max-width:70ch;color:var(--muted);font-size:.95rem}
+.document-label{font-family:var(--f-mono);font-size:.72rem;color:var(--signal);white-space:nowrap;border-left:2px solid var(--signal);padding:8px 14px}
+.disclaimer{color:var(--muted);padding:12px 16px;border:1px solid var(--line);border-left:3px solid var(--signal);background:var(--surface);border-radius:4px}
+footer{max-width:1368px;margin:0 auto;padding:18px 16px 28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.78rem;color:var(--muted)}
+.tabs button,.btn,.seg button{min-height:36px}
+@media(max-width:720px){.academic-intro{align-items:start;flex-direction:column;gap:14px}.topbar{position:relative}.tabs{width:100%}.document-label{white-space:normal}}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
+
+<header class="topbar">
+  <div class="tb-row">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></div>
+      <div><h1>C1001 · Gemelo digital</h1><small>Asistencia no invasiva · ESP32 + Blynk</small></div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Vistas">
+      <button role="tab" id="tab-3d" aria-controls="p-3d" aria-selected="true" data-tab="3d">Gemelo 3D</button>
+      <button role="tab" id="tab-escenas" aria-controls="p-escenas" aria-selected="false" data-tab="escenas">Escenas y panel</button>
+      <button role="tab" id="tab-electrico" aria-controls="p-electrico" aria-selected="false" data-tab="electrico">Diagrama eléctrico</button>
+      <button role="tab" id="tab-logica" aria-controls="p-logica" aria-selected="false" data-tab="logica">Lógica</button>
+      <button role="tab" id="tab-catalogo" aria-controls="p-catalogo" aria-selected="false" data-tab="catalogo">Catálogo</button>
+    </nav>
+    <div class="chips">
+      <span class="chip dim">56 × 30 × 25 mm</span>
+      <span class="chip live">Simulación activa</span>
+      <div class="seg" role="group" aria-label="Modo solicitado (V10)">
+        <button type="button" id="mFall" data-mode="FALL" aria-pressed="true"><b>FALL</b></button>
+        <button type="button" id="mSleep" data-mode="SLEEP" aria-pressed="false"><b>SLEEP</b></button>
+      </div>
+    </div>
+  </div>
+  <div class="statusline">
+    <span id="status" aria-live="polite">Modo FALL aplicado</span>
+    <span class="minibar" aria-hidden="true"><i id="bar"></i></span>
+    <label><input type="checkbox" id="accel" checked> Acelerar tiempos</label>
+    <button type="button" class="btn" id="reboot">Simular reinicio</button>
+  </div>
+</header>
+
+<main class="wrap" id="contenido" tabindex="-1">
+  <div class="academic-intro">
+    <div><span class="eyebrow">Proyecto universitario · Simulación interactiva</span><h2>Asistencia no invasiva.<br>Un sistema, cinco perspectivas.</h2><p>Exploración del radar C1001 y su integración con ESP32 y Blynk: desde los componentes y el recorrido del dato hasta la lógica de detección de caídas y monitoreo del sueño.</p></div>
+    <span class="document-label">C1001 / GEMELO DIGITAL<br>Entorno de demostración académica</span>
+  </div>
+  <noscript><p class="disclaimer">Activa JavaScript para utilizar el simulador, consultar los componentes y cambiar entre las vistas.</p></noscript>
+  <p class="disclaimer">Simulación cualitativa en el navegador: no usa el dispositivo real, los valores son sintéticos y no es un dispositivo médico. La distribución interna de la carcasa es provisional.</p>
+
+  <!-- ============ GEMELO 3D ============ -->
+  <section id="p-3d" role="tabpanel" aria-labelledby="tab-3d">
+    <div class="twin">
+      <div class="card side-left">
+        <div class="tour">
+          <div class="head"><h3>Recorrido del dato</h3><button type="button" class="btn" id="tourPlay">Iniciar</button></div>
+          <div class="tour-step" aria-live="polite"><span class="eyebrow" id="tourN">Etapa 1 / 6</span><b id="tourT"></b><p class="muted" id="tourX"></p></div>
+          <div class="actions"><button type="button" class="btn" id="tourPrev">Ant.</button><div class="tour-dots" id="tourDots"></div><button type="button" class="btn" id="tourNext">Sig.</button></div>
+        </div>
+        <div style="display:grid;gap:6px">
+          <span class="eyebrow">Componentes [1–7]</span>
+          <div class="comp-list" id="compList"></div>
+        </div>
+      </div>
+
+      <div class="card stage-card">
+        <div class="stage-tools">
+          <div class="seg" role="group" aria-label="Vista de cámara" id="camSeg">
+            <button type="button" data-cam="iso" aria-pressed="true">ISO</button>
+            <button type="button" data-cam="frontal" aria-pressed="false">Frontal</button>
+            <button type="button" data-cam="lateral" aria-pressed="false">Lateral</button>
+            <button type="button" data-cam="aerea" aria-pressed="false">Aérea</button>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn" id="tXray" aria-pressed="true">Rayos X</button>
+            <button type="button" class="btn" id="tWires" aria-pressed="true">Cableado</button>
+            <button type="button" class="btn" id="tFlow" aria-pressed="true">Flujo</button>
+            <button type="button" class="btn" id="tCone" aria-pressed="false">Cono radar</button>
+            <button type="button" class="btn" id="tTags" aria-pressed="true">1–7</button>
+          </div>
+        </div>
+        <div class="stage" id="stage">
+          <div class="stage-note">Arrastra para girar · rueda para acercar · toca un componente</div>
+        </div>
+        <div class="stage-tools" style="border-top:1px solid var(--line);border-bottom:0">
+          <div class="legend">
+            <span><i style="background:var(--pwr)"></i>5 V</span>
+            <span><i style="background:var(--uart)"></i>UART (GPIO16/17)</span>
+            <span><i style="background:var(--i2c)"></i>I²C (GPIO21/22)</span>
+            <span><i style="background:var(--signal)"></i>Wi-Fi 2,4 GHz</span>
+          </div>
+          <span class="caption">Cara superior = cara del radar, apunta hacia la persona.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ficha" id="ficha"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ESCENAS Y PANEL ============ -->
+  <section id="p-escenas" role="tabpanel" aria-labelledby="tab-escenas" hidden>
+    <div class="main">
+      <section class="card" aria-label="Escena">
+        <div class="scene-wrap">
+          <div id="sceneFall">
+            <div class="scene-wrap">
+              <div class="head">
+                <div style="display:grid;gap:4px"><span class="tag fall">Modo FALL</span><h2>Baño · equipo en el techo</h2></div>
+                <p>Arrastra a la persona en la vista en planta o usa los botones. El radar solo ve lo que está dentro de su cobertura.</p>
+              </div>
+              <div class="actions">
+                <button type="button" class="btn" id="fWalk" aria-pressed="false">Caminar</button>
+                <button type="button" class="btn" id="fStill">Quedarse quieta</button>
+                <button type="button" class="btn danger" id="fFall">Simular caída</button>
+                <button type="button" class="btn" id="fUp">Levantarse</button>
+                <button type="button" class="btn" id="fOut">Salir del baño</button>
+              </div>
+              <div class="sliders">
+                <label for="gH">Altura de instalación: <span class="mono" id="gHv">2,70 m</span><input type="range" id="gH" min="2.2" max="3.0" step="0.05" value="2.7"></label>
+                <label for="gA">Semiángulo de cobertura: <span class="mono" id="gAv">40°</span><input type="range" id="gA" min="20" max="60" step="1" value="40"></label>
+                <div style="display:grid;gap:2px"><span class="muted">Radio cubierto en el piso</span><b class="mono" id="gR">2,27 m</b></div>
+              </div>
+              <div class="views">
+                <div class="view">
+                  <span class="eyebrow">Vista lateral (a escala)</span>
+                  <svg id="svgSide" viewBox="0 0 340 250" role="img" aria-label="Vista lateral del baño con el radar en el techo y su cono de cobertura">
+                    <rect x="14" y="20" width="312" height="205" fill="var(--room)"/>
+                    <polygon id="cone" points="170,50 40,225 300,225" fill="var(--signal-soft)" stroke="var(--signal)" stroke-dasharray="4 4" stroke-width="1"/>
+                    <line x1="14" y1="225" x2="326" y2="225" stroke="var(--floor)" stroke-width="3"/>
+                    <line id="ceil" x1="14" y1="50" x2="326" y2="50" stroke="var(--floor)" stroke-width="2"/>
+                    <rect id="radarSide" x="162" y="50" width="16" height="7" rx="2" fill="var(--signal)"/>
+                    <line id="dimL" x1="26" y1="50" x2="26" y2="225" stroke="var(--muted)" stroke-width="1"/>
+                    <line id="dimT" x1="21" y1="50" x2="31" y2="50" stroke="var(--muted)"/>
+                    <line x1="21" y1="225" x2="31" y2="225" stroke="var(--muted)"/>
+                    <text id="dimTxt" x="34" y="140" font-size="11" fill="var(--muted)" font-family="JetBrains Mono, monospace">2,70 m</text>
+                    <g id="personSide">
+                      <circle id="psHead" cx="170" cy="122" r="9" fill="var(--body)"/>
+                      <line id="psBody" x1="170" y1="131" x2="170" y2="225" stroke="var(--body)" stroke-width="10" stroke-linecap="round"/>
+                    </g>
+                    <text x="320" y="242" font-size="10" text-anchor="end" fill="var(--muted)" font-family="JetBrains Mono, monospace">persona de referencia: 1,70 m</text>
+                  </svg>
+                </div>
+                <div class="view">
+                  <span class="eyebrow">Vista en planta · trayectoria track(x, y)</span>
+                  <svg id="svgPlan" viewBox="0 0 340 360" role="img" aria-label="Vista en planta del baño con la cobertura del radar y la posición de la persona">
+                    <rect x="14" y="14" width="312" height="312" fill="var(--room)" stroke="var(--floor)" stroke-width="3"/>
+                    <line x1="326" y1="150" x2="326" y2="200" stroke="var(--room)" stroke-width="5"/>
+                    <text x="320" y="146" font-size="10" text-anchor="end" fill="var(--muted)" font-family="JetBrains Mono, monospace">puerta</text>
+                    <g id="grid"></g>
+                    <circle id="covPlan" cx="170" cy="170" r="147" fill="var(--signal-soft)" stroke="var(--signal)" stroke-dasharray="4 4"/>
+                    <polyline id="trail" points="" fill="none" stroke="var(--signal)" stroke-width="1.5" opacity=".7"/>
+                    <g id="trailDots"></g>
+                    <rect x="164" y="166" width="12" height="7" rx="2" fill="var(--signal)"/>
+                    <text x="170" y="190" font-size="10" text-anchor="middle" fill="var(--signal)" font-family="JetBrains Mono, monospace">equipo</text>
+                    <g id="personPlan" style="cursor:grab">
+                      <circle id="ppHalo" cx="230" cy="130" r="18" fill="var(--body)" opacity=".12"/>
+                      <ellipse id="ppBody" cx="230" cy="130" rx="9" ry="9" fill="var(--body)"/>
+                    </g>
+                    <g id="ticks"></g>
+                  </svg>
+                </div>
+              </div>
+              <p class="caption">Geometría ilustrativa: radio cubierto = altura × tan(semiángulo). La altura de 2,7 m y los 40° vienen del análisis de instalación y deben verificarse con la hoja de datos del SEN0623. Coordenadas track() en cm; unidad real por confirmar.</p>
+            </div>
+          </div>
+
+          <div id="sceneSleep" hidden>
+            <div class="scene-wrap">
+              <div class="head">
+                <div style="display:grid;gap:4px"><span class="tag sleep">Modo SLEEP</span><h2>Dormitorio · equipo sobre la cama</h2></div>
+                <p>Elige cómo está la persona y ajusta la distancia del equipo al tórax.</p>
+              </div>
+              <div class="actions">
+                <button type="button" class="btn" data-sl="tranquilo" aria-pressed="true">Duerme tranquila</button>
+                <button type="button" class="btn" data-sl="lenta" aria-pressed="false">Respiración lenta</button>
+                <button type="button" class="btn" data-sl="rapida" aria-pressed="false">Respiración rápida</button>
+                <button type="button" class="btn" data-sl="moviendo" aria-pressed="false">Se mueve en la cama</button>
+                <button type="button" class="btn" data-sl="ausente" aria-pressed="false">Se levanta</button>
+              </div>
+              <div class="sliders">
+                <label for="sD">Distancia equipo–tórax: <span class="mono" id="sDv">1,00 m</span><input type="range" id="sD" min="0.4" max="3" step="0.05" value="1"></label>
+                <div style="display:grid;gap:2px"><span class="muted">Calidad de lectura (ilustrativa)</span><b class="mono" id="sQ">Buena</b></div>
+              </div>
+              <div class="view">
+                <span class="eyebrow">Vista lateral (a escala)</span>
+                <svg id="svgSleep" viewBox="0 0 340 250" role="img" aria-label="Vista lateral de la cama con el equipo apuntando al tórax">
+                  <rect x="14" y="20" width="312" height="208" fill="var(--room)"/>
+                  <line x1="14" y1="228" x2="326" y2="228" stroke="var(--floor)" stroke-width="3"/>
+                  <rect x="110" y="198" width="140" height="18" rx="4" fill="var(--floor)"/>
+                  <rect x="110" y="216" width="6" height="12" fill="var(--floor)"/>
+                  <rect x="244" y="216" width="6" height="12" fill="var(--floor)"/>
+                  <rect x="104" y="170" width="8" height="58" rx="2" fill="var(--floor)"/>
+                  <polygon id="beam" points="160,80 150,186 176,186" fill="var(--night-soft)" stroke="var(--night)" stroke-dasharray="4 4"/>
+                  <line id="bracket" x1="160" y1="20" x2="160" y2="72" stroke="var(--muted)" stroke-width="1.5"/>
+                  <rect id="radarSleep" x="152" y="72" width="16" height="7" rx="2" fill="var(--night)"/>
+                  <g id="sleeper">
+                    <circle cx="126" cy="188" r="9" fill="var(--body)"/>
+                    <rect x="136" y="183" width="102" height="14" rx="7" fill="var(--body)"/>
+                    <ellipse id="chest" cx="163" cy="185" rx="16" ry="6" fill="var(--body)"/>
+                  </g>
+                  <text id="sDimTxt" x="174" y="130" font-size="11" fill="var(--muted)" font-family="JetBrains Mono, monospace">1,00 m</text>
+                  <text x="320" y="244" font-size="10" text-anchor="end" fill="var(--muted)" font-family="JetBrains Mono, monospace">cama de referencia: 2,0 m</text>
+                </svg>
+              </div>
+              <div style="display:grid;gap:6px">
+                <span class="eyebrow">Desplazamiento del tórax · señal que el radar procesa por dentro</span>
+                <canvas id="wave" class="wave" width="900" height="192" aria-label="Señal ilustrativa de respiración y latido"></canvas>
+                <p class="caption">Señal ilustrativa. El C1001 la procesa internamente; el ESP32 no la recibe, solo los valores finales por UART. Umbrales, distancias y categorías de sueño son ilustrativos.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="overlay" id="overlay" hidden>
+            <div><span class="eyebrow" id="ovEy">Radar reconfigurándose</span><h2 id="ovTitle">Aplicando SLEEP</h2><p class="muted" id="ovTxt">configWorkMode() bloquea unos 10 s en el firmware actual. Durante ese tiempo no hay datos del radar.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="phone" aria-label="Panel del cuidador en Blynk">
+        <div class="toast" id="toast" hidden role="status"><b id="toastT">Caída</b><span id="toastB"></span></div>
+        <div class="phone-bar"><b>Blynk · Cuidador</b><span class="mono muted" style="font-size:.75rem"><span class="dot" id="onlineDot"></span><span id="onlineTxt">Piloto 01 en línea</span></span></div>
+        <div class="switch-row">
+          <div style="display:grid"><span class="mono muted" style="font-size:.68rem">V10 · selector</span><b id="v10lbl">fall</b></div>
+          <button type="button" class="switch" id="v10" role="switch" aria-checked="false" aria-label="Cambiar entre fall y sleep"><span class="trk"><i></i></span></button>
+          <div style="display:grid;justify-items:end"><span class="mono muted" style="font-size:.68rem">V11 · aplicado</span><span class="chip" id="v11">FALL</span></div>
+        </div>
+        <div class="group">
+          <div class="group-h"><h3>Modo FALL</h3><span class="eyebrow" id="gFallSt">activo</span></div>
+          <div class="tiles">
+            <div class="tile" id="tV2"><div class="pin"><span>V2</span><span>presencia</span></div><div class="val">—</div><div class="note">Al cambiar</div></div>
+            <div class="tile" id="tV3"><div class="pin"><span>V3</span><span>caída</span></div><div class="val">—</div><div class="note">Evento push</div></div>
+            <div class="tile" id="tV4"><div class="pin"><span>V4</span><span>movimiento</span></div><div class="val">—</div><div class="note">Escala por verificar</div></div>
+            <div class="tile" id="tV9"><div class="pin"><span>V9</span><span>inmovilidad</span></div><div class="val">—</div><div class="note">Propuesto</div></div>
+          </div>
+        </div>
+        <div class="group">
+          <div class="group-h"><h3>Modo SLEEP</h3><span class="eyebrow" id="gSleepSt">sin dato</span></div>
+          <div class="tiles">
+            <div class="tile" id="tV5"><div class="pin"><span>V5</span><span>respiración</span></div><div class="val">—</div><div class="note">Estimación</div></div>
+            <div class="tile" id="tV6"><div class="pin"><span>V6</span><span>frec. cardíaca</span></div><div class="val">—</div><div class="note">Estimación</div></div>
+            <div class="tile" id="tV7"><div class="pin"><span>V7</span><span>sueño</span></div><div class="val">—</div><div class="note">Categorías ilustrativas</div></div>
+            <div class="tile" id="tV8"><div class="pin"><span>V8</span><span>estado resp.</span></div><div class="val">—</div><div class="note">getBreatheState()</div></div>
+          </div>
+        </div>
+        <div class="group">
+          <div class="group-h"><h3>Ambiente · apoyo</h3><span class="eyebrow" id="envNext">publica en 10 s</span></div>
+          <div class="env-sel"><label for="envSc">Escenario:</label>
+            <select id="envSc">
+              <option value="normal">Normal</option>
+              <option value="ventana">Ventana abierta</option>
+              <option value="ducha">Ducha caliente</option>
+              <option value="limpieza">Productos de limpieza</option>
+              <option value="humo">Calor y humo</option>
+            </select>
+          </div>
+          <div class="tiles">
+            <div class="tile" id="tV0"><div class="pin"><span>V0</span><span>SHT40</span></div><div class="val">—</div><canvas class="spark" id="spV0" width="300" height="60"></canvas></div>
+            <div class="tile" id="tV1"><div class="pin"><span>V1</span><span>SHT40</span></div><div class="val">—</div><canvas class="spark" id="spV1" width="300" height="60"></canvas></div>
+            <div class="tile" id="tV12"><div class="pin"><span>V12</span><span>SGP40</span></div><div class="val">—</div><canvas class="spark" id="spV12" width="300" height="60"></canvas></div>
+            <div class="tile" id="tDew"><div class="pin"><span>ESP32</span><span>calculado</span></div><div class="val">—</div><div class="note">Punto de rocío</div></div>
+          </div>
+          <p class="muted" id="envNote" style="font-size:.75rem;padding-inline:4px">Solo indicadores numéricos, sin alarma. Índice VOC: 100 es el promedio aprendido del ambiente.</p>
+        </div>
+        <div class="group">
+          <div class="group-h"><h3>Notificaciones</h3><span class="eyebrow">Blynk.logEvent()</span></div>
+          <div class="notifs" id="notifs" aria-live="polite"><p class="empty">Aún no hay eventos. Prueba “Simular caída”.</p></div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="extras" style="margin-top:18px">
+      <div class="card">
+        <div class="head"><h2>Datos extra del C1001</h2><span class="eyebrow" id="exMode">modo FALL</span></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Función</th><th>Qué entrega</th><th>Valor</th><th>Destino</th></tr></thead><tbody id="exBody"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="head"><h2>Registro CSV</h2><span class="eyebrow">monitor serie → Python</span></div>
+        <div class="csv" id="csv" aria-label="Últimas líneas del registro CSV"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DIAGRAMA ELÉCTRICO ============ -->
+  <section id="p-electrico" role="tabpanel" aria-labelledby="tab-electrico" hidden>
+    <div class="card">
+      <div class="head">
+        <div style="display:grid;gap:4px"><span class="eyebrow">Mapa de pines vigente</span><h2>Diagrama eléctrico en vivo</h2></div>
+        <p>Las líneas se animan cuando hay tráfico en la simulación. Las corrientes son estimaciones preliminares del proyecto, no mediciones del sistema completo.</p>
+      </div>
+      <div class="elec-wrap">
+        <svg class="elec" viewBox="0 0 1000 600" role="img" aria-label="Diagrama de conexiones del ESP32 con el C1001, el SHT40, el SGP40 y la alimentación">
+          <!-- Fuente -->
+          <rect class="blk future" x="20" y="40" width="230" height="150" rx="12"/>
+          <text class="t-b" x="36" y="70">Fuente externa</text>
+          <text class="t-m" x="36" y="92">HLK-5M05 · 220 V AC → 5 V</text>
+          <text class="t-m" x="36" y="110">MP1584EN · ~4,5 V hacia VIN</text>
+          <text class="t-m" x="36" y="128">alternativa: módulo 18650</text>
+          <text class="t-m" x="36" y="170" style="fill:var(--warn)">en evaluación</text>
+          <!-- C1001 -->
+          <rect class="blk" x="380" y="30" width="270" height="120" rx="12"/>
+          <text class="t-b" x="396" y="60">DFRobot C1001 (SEN0623)</text>
+          <text class="t-m" x="396" y="80">radar mmWave · UART 115200</text>
+          <text class="t-pin" x="396" y="138">5V</text><text class="t-pin" x="440" y="138">GND</text><text class="t-pin" x="540" y="138">TX</text><text class="t-pin" x="600" y="138">RX</text>
+          <text class="val" x="396" y="104" id="eC1001">≈ 100 mA (preliminar)</text>
+          <!-- ESP32 -->
+          <rect class="blk main" x="330" y="230" width="370" height="230" rx="14"/>
+          <text class="t-b" x="350" y="262">ESP32 DevKit · ESP-WROOM-32</text>
+          <text class="t-m" x="350" y="282">regulador interno AMS1117 → 3,3 V</text>
+          <text class="val" x="350" y="304" id="eEsp">≈ 80–110 mA con Wi-Fi + Blynk</text>
+          <text class="t-pin" x="342" y="340">VIN / 5V</text>
+          <text class="t-pin" x="342" y="380">GND</text>
+          <text class="t-pin" x="342" y="420">3V3</text>
+          <text class="t-pin" x="525" y="248" text-anchor="middle">GPIO16 RX2 · GPIO17 TX2</text>
+          <text class="t-pin" x="690" y="340" text-anchor="end">GPIO21 SDA</text>
+          <text class="t-pin" x="690" y="380" text-anchor="end">GPIO22 SCL</text>
+          <text class="t-pin" x="690" y="420" text-anchor="end">Wi-Fi 2,4 GHz</text>
+          <text class="t-pin" x="515" y="450" text-anchor="middle">GPIO34 · ADC</text>
+          <!-- Sensores -->
+          <rect class="blk" x="770" y="230" width="210" height="80" rx="12"/>
+          <text class="t-b" x="786" y="258">SHT40</text>
+          <text class="t-m" x="786" y="278">T y HR · I²C 0x44 · 3V3</text>
+          <text class="t-m" x="786" y="296" style="fill:var(--ok)">probado</text>
+          <rect class="blk" x="770" y="330" width="210" height="80" rx="12"/>
+          <text class="t-b" x="786" y="358">SGP40</text>
+          <text class="t-m" x="786" y="378">índice VOC · I²C · 3V3</text>
+          <text class="t-m" x="786" y="396" style="fill:var(--warn)">pendiente</text>
+          <!-- Blynk -->
+          <rect class="blk" x="770" y="450" width="210" height="80" rx="12"/>
+          <text class="t-b" x="786" y="478">Blynk Cloud</text>
+          <text class="t-m" x="786" y="498">V0–V12 · eventos push</text>
+          <text class="t-m" x="786" y="516" id="eBlynk">en línea</text>
+          <!-- ADC futuro -->
+          <rect class="blk future" x="380" y="500" width="270" height="70" rx="12"/>
+          <text class="t-b" x="396" y="528">Medición de batería</text>
+          <text class="t-m" x="396" y="550">divisor 100 k / 100 k · etapa futura</text>
+          <!-- cables -->
+          <path id="wP5" class="w pwr" d="M250 100 H300 V335 H330"/>
+          <path id="wP5c" class="w pwr" d="M300 100 V10 H405 V125"/>
+          <path class="w gnd" d="M250 150 H285 V375 H330"/>
+          <path class="w gnd" d="M285 150 V20 H455 V125"/>
+          <path id="wTx" class="w uart" d="M550 125 V190 H500 V230"/>
+          <path id="wRx" class="w uart" d="M610 125 V205 H560 V230"/>
+          <path id="w3v3" class="w pwr" d="M330 415 H310 V585 H740 V290 H770" style="opacity:.55"/>
+          <path class="w pwr" d="M740 390 H770" style="opacity:.55"/>
+          <path id="wSda" class="w i2c" d="M700 335 H755 V255 H770"/>
+          <path id="wScl" class="w i2c" d="M700 375 H760 V355 H770"/>
+          <path id="wSda2" class="w i2c" d="M755 335 V345 H770" />
+          <path id="wRf" class="w rf" d="M700 415 H725 V490 H770"/>
+          <path class="w gnd" d="M515 460 V500" />
+          <text class="val" x="40" y="225" id="eTotal">Riel 5 V: ≈ 180–210 mA (estimado)</text>
+          <text class="t-m" x="40" y="245">≈ 0,90–1,05 W a 5 V</text>
+          <text class="t-m" x="560" y="183" style="fill:var(--uart)">C1001 TX → GPIO16</text>
+          <text class="t-m" x="566" y="218" style="fill:var(--uart)">GPIO17 → C1001 RX</text>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i style="background:var(--pwr)"></i>Alimentación</span>
+        <span><i style="background:var(--muted)"></i>GND común</span>
+        <span><i style="background:var(--uart)"></i>UART cruzado</span>
+        <span><i style="background:var(--i2c)"></i>Bus I²C compartido</span>
+        <span><i style="background:var(--signal)"></i>Wi-Fi</span>
+        <span>Borde punteado: etapa en evaluación o futura</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LÓGICA ============ -->
+  <section id="p-logica" role="tabpanel" aria-labelledby="tab-logica" hidden>
+    <div class="card">
+      <div class="head">
+        <div style="display:grid;gap:4px"><span class="eyebrow">Firmware ESP32 · Arduino IDE</span><h2>Lógica de control</h2></div>
+        <p>El paso que se ejecuta en la simulación se resalta en vivo. Usa “Simular reinicio” arriba para ver el arranque, o cambia de modo para ver la espera de 20 s.</p>
+      </div>
+      <div class="logic" id="logic">
+        <div class="lg" id="lg1"><span class="n">1</span><span class="kind">setup()</span><b>Puerto serie y UART2</b><p><code>Serial.begin()</code> y <code>Serial2.begin(115200)</code> en GPIO16/17.</p></div>
+        <div class="arrow"></div>
+        <div class="lg" id="lg2"><span class="n">2</span><span class="kind">setup() · bloquea ~10 s</span><b>Inicio y calibración del C1001</b><p><code>hu.begin()</code> espera internamente unos 10 s. Luego se configura el modo FALL.</p></div>
+        <div class="arrow"></div>
+        <div class="lg" id="lg3"><span class="n">3</span><span class="kind">setup()</span><b>I²C, SHT40, Wi-Fi y Blynk</b><p>Alta precisión sin calentador, temporizador de 100 s y <code>Blynk.syncVirtual(V10)</code> para recuperar el modo guardado.</p></div>
+        <div class="arrow"></div>
+        <div class="lg" id="lg4"><span class="n">4</span><span class="kind">loop()</span><b>Bucle principal</b><p><code>Blynk.run()</code>, <code>timer.run()</code> y <code>procesarCambioModo()</code>.</p></div>
+        <div class="arrow"></div>
+        <div class="lg dec" id="lg5"><span class="n">5</span><span class="kind">decisión · BLYNK_WRITE(V10)</span><b>¿Llegó un modo distinto al aplicado?</b><p>0 = FALL, 1 = SLEEP. Una nueva solicitud reemplaza a la anterior y reinicia la espera.</p></div>
+        <div class="branch">sí ↓</div>
+        <div class="lg" id="lg6"><span class="n">6</span><span class="kind">millis(), sin delay()</span><b>Espera de 20 s</b><p>Blynk y los sensores siguen atendidos durante la espera.</p></div>
+        <div class="arrow"></div>
+        <div class="lg" id="lg7"><span class="n">7</span><span class="kind">bloquea ~10 s</span><b>Reconfigurar el radar</b><p><code>hu.configWorkMode(hu.eFallingMode)</code> o <code>hu.eSleepMode</code>. El modo se marca aplicado solo si termina bien.</p></div>
+        <div class="arrow"></div>
+        <div class="lg" id="lg8"><span class="n">8</span><span class="kind">propuesto</span><b>Publicar V11 y avisar</b><p><code>Blynk.logEvent()</code> con el evento de modo aplicado (identificador por definir en la consola).</p></div>
+        <div class="arrow"></div>
+        <div class="lg" id="lg9"><span class="n">9</span><span class="kind">según modo aplicado</span><b>Leer el radar y publicar al cambiar</b><p>FALL: presencia, caída, movimiento. SLEEP: respiración, frecuencia cardíaca, estado de sueño. Solo se publican variables del modo activo.</p></div>
+        <div class="arrow"></div>
+        <div class="lg dec" id="lg10"><span class="n">10</span><span class="kind">decisión · antirrebote</span><b>¿Caída sostenida 3 s?</b><p>Evita alertas por eventos transitorios. Valor de 3 s propuesto, a validar con pruebas.</p></div>
+        <div class="branch">sí ↓</div>
+        <div class="lg" id="lg11"><span class="n">11</span><span class="kind">propuesto</span><b>Alerta de caída al cuidador</b><p>Un solo evento hasta que el estado vuelva a normal. Requiere evento configurado en Blynk.</p></div>
+        <div class="arrow"></div>
+        <div class="lg" id="lg12"><span class="n">12</span><span class="kind">BlynkTimer · cada 100 s</span><b>Ambiente de apoyo</b><p>SHT40 → V0, V1. SGP40 leído cada 1 s y publicado cada 100 s → V12 (propuesto). Sin alarmas.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CATÁLOGO ============ -->
+  <section id="p-catalogo" role="tabpanel" aria-labelledby="tab-catalogo" hidden>
+    <div class="card">
+      <div class="head"><div style="display:grid;gap:4px"><span class="eyebrow">Componentes [1–7]</span><h2>Catálogo</h2></div><p>Estado según el avance real del proyecto: probado, pendiente, propuesto o en desarrollo.</p></div>
+      <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Componente</th><th>Función</th><th>Interfaz y pines</th><th>Alimentación</th><th>Estado</th></tr></thead><tbody id="catBody"></tbody></table></div>
+    </div>
+  </section>
+</main>
+<footer><span>C1001 · Gemelo digital · Proyecto universitario</span><span>Simulación en navegador · Sin conexión a hardware real</span></footer>
+
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+const fmt=(v,d=1)=>Number(v).toFixed(d).replace(".",",");
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rnd=(a=1)=>(Math.random()*2-1)*a;
+const T0=performance.now();
+const now=()=>(performance.now()-T0)/1000;
+const clock=()=>new Date().toLocaleTimeString("es-PE",{hour12:false});
+const tok=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* ============ COMPONENTES ============ */
+const COMP=[
+  {id:"c1001",n:1,name:"Radar DFRobot C1001",short:"C1001 (SEN0623)",mod:"Sensor principal",
+   fn:"Detecta presencia, movimiento y caídas (FALL) y estima respiración y frecuencia cardíaca (SLEEP). Procesa la señal internamente y entrega valores ya calculados.",
+   iface:"UART 115200 · TX → GPIO16 (RX2) · RX ← GPIO17 (TX2)",pwr:"5 V (VIN/5V o riel regulado)",cons:"≈ 100 mA (preliminar, margen 120 mA)",
+   pos:"Bajo la cara superior, mirando hacia afuera",state:"probado",stateTxt:"Inicio, calibración y cambio de modo probados; variables en Blynk pendientes",
+   notes:["Banda, transceptor y ancho de banda por verificar con la documentación del SEN0623","configWorkMode() bloquea ~10 s","No es medición clínica"]},
+  {id:"esp32",n:2,name:"ESP32 DevKit (ESP-WROOM-32)",short:"ESP32 DevKit",mod:"Control y comunicación",
+   fn:"Lee el radar y los sensores, aplica la lógica de modos con la espera de 20 s y publica en Blynk por Wi-Fi.",
+   iface:"UART2 (GPIO16/17) · I²C (GPIO21/22) · Wi-Fi 2,4 GHz · ADC GPIO34 reservado",pwr:"VIN/5V o USB; regulador interno a 3,3 V",cons:"≈ 80–110 mA con SHT40 + Wi-Fi + Blynk (observado, sin radar)",
+   pos:"Capa inferior de la carcasa",state:"probado",stateTxt:"V0, V1 y V10 probados",
+   notes:["Ningún GPIO recibe 5 V","Doble núcleo: tarea dedicada al radar propuesta"]},
+  {id:"sht40",n:3,name:"Sensirion SHT40",short:"SHT40",mod:"Ambiente de apoyo",
+   fn:"Temperatura y humedad relativa para monitorear la comodidad del ambiente.",
+   iface:"I²C · dirección 0x44 · SDA GPIO21 · SCL GPIO22",pwr:"3V3",cons:"Bajo (ver hoja de datos)",
+   pos:"Junto a la rejilla lateral, lejos del calor",state:"probado",stateTxt:"Publica V0 y V1 cada 100 s, alta precisión sin calentador",
+   notes:["Discrepancia observada: 27,4 °C frente a ~22 °C esperados","Ubicarlo lejos del radar y del regulador"]},
+  {id:"sgp40",n:4,name:"Sensirion SGP40",short:"SGP40",mod:"Ambiente de apoyo",
+   fn:"Índice VOC (0–500) como indicador de contaminación del aire. Junto con la temperatura, muestra en números un patrón compatible con combustión, sin alarma.",
+   iface:"I²C compartido · GPIO21/22 · dirección según módulo (por confirmar)",pwr:"3V3",cons:"Bajo, lectura de pocos ms por segundo (verificar)",
+   pos:"Junto a la rejilla lateral",state:"pendiente",stateTxt:"Por integrar; lectura cada 1 s y publicación cada 100 s propuestas",
+   notes:["El índice es relativo: 100 = promedio aprendido","No es detector de humo ni de CO"]},
+  {id:"shell",n:5,name:"Carcasa 56 × 30 × 25 mm",short:"Carcasa",mod:"Mecánica",
+   fn:"Aloja los módulos. La cara superior queda libre para el radar; las rejillas laterales ventilan los sensores ambientales.",
+   iface:"—",pwr:"—",cons:"—",pos:"Diseño en Fusion",state:"desarrollo",stateTxt:"En desarrollo; distribución interna provisional",
+   notes:["Verificar que la carcasa no atenúe la señal del radar","Separar sensores del calor interno"]},
+  {id:"psu",n:6,name:"Fuente externa 220 V → 5 V",short:"Fuente externa",mod:"Alimentación",
+   fn:"Convierte la red a 5 V para el radar y entrega ~4,5 V al VIN del DevKit mediante un buck.",
+   iface:"Cable de alimentación",pwr:"HLK-5M05 (5 V, 5 W) + MP1584EN",cons:"Capacidad 1 A a 5 V",
+   pos:"Fuera de la carcasa",state:"propuesto",stateTxt:"En evaluación; alternativa con celda 18650",
+   notes:["Instalación a 220 V con protecciones","Medir corriente real antes de decidir"]},
+  {id:"ant",n:7,name:"Antena Wi-Fi del DevKit",short:"Antena Wi-Fi",mod:"Comunicación",
+   fn:"Antena impresa del módulo ESP-WROOM-32 para la conexión con Blynk Cloud.",
+   iface:"Wi-Fi 2,4 GHz",pwr:"—",cons:"Picos de corriente al transmitir",
+   pos:"Extremo del módulo ESP32",state:"probado",stateTxt:"Vigente; antena SMA con ESP32-S3 a mediano plazo",
+   notes:["El C1001 dio problemas en ESP32-S3; pendiente de revisar"]}
+];
+const STATE_LBL={probado:"Probado",pendiente:"Pendiente",propuesto:"Propuesto",desarrollo:"En desarrollo"};
+let selId="c1001";
+
+function renderFicha(id){
+  const c=COMP.find(x=>x.id===id); if(!c) return; selId=id;
+  $("#ficha").innerHTML=`
+    <div style="display:grid;gap:2px"><span class="eyebrow">#${c.n} · ${c.mod}</span><h2>${c.name}</h2></div>
+    <span class="state ${c.state}">${STATE_LBL[c.state]}</span>
+    <p>${c.fn}</p>
+    <div class="kv">
+      <div><span>Interfaz</span><b>${c.iface}</b></div>
+      <div><span>Alimentación</span><b>${c.pwr}</b></div>
+      <div><span>Consumo</span><b>${c.cons}</b></div>
+      <div><span>Ubicación</span><b>${c.pos}</b></div>
+    </div>
+    <div style="display:grid;gap:4px"><span class="eyebrow">Estado</span><p class="muted">${c.stateTxt}</p></div>
+    <div style="display:grid;gap:4px"><span class="eyebrow">Aspectos críticos</span><ul style="margin:0;padding-left:18px;color:var(--muted)">${c.notes.map(n=>`<li>${n}</li>`).join("")}</ul></div>`;
+  $$("#compList button").forEach(b=>b.classList.toggle("sel",b.dataset.id===id));
+  $$(".marker").forEach(m=>m.classList.toggle("sel",m.dataset.id===id));
+  if(window.__twin) window.__twin.highlight(id);
+}
+$("#compList").innerHTML=COMP.map(c=>`<button type="button" data-id="${c.id}"><span class="num">${c.n}</span>${c.short}</button>`).join("");
+$$("#compList button").forEach(b=>b.addEventListener("click",()=>{renderFicha(b.dataset.id); if(window.__twin) window.__twin.focus(b.dataset.id);}));
+$("#catBody").innerHTML=COMP.map(c=>`<tr><td class="v">${c.n}</td><td><b>${c.name}</b></td><td>${c.fn}</td><td>${c.iface}</td><td>${c.pwr}</td><td><span class="state ${c.state}">${STATE_LBL[c.state]}</span></td></tr>`).join("");
+
+/* ============ PESTAÑAS ============ */
+function showTab(name){
+  $$(".tabs button").forEach(b=>{
+    b.setAttribute("aria-selected",b.dataset.tab===name);
+    b.tabIndex=b.dataset.tab===name?0:-1;
+  });
+  $$("[role=tabpanel]").forEach(p=>p.hidden=p.id!=="p-"+name);
+  if(name==="3d"&&window.__twin) window.__twin.resize();
+  try{history.replaceState(null,"","#"+name);}catch(e){}
+}
+$$(".tabs button").forEach(b=>b.addEventListener("click",()=>showTab(b.dataset.tab)));
+$$(".tabs button").forEach((b,i,buttons)=>{
+  b.tabIndex=b.getAttribute("aria-selected")==="true"?0:-1;
+  b.addEventListener("keydown",e=>{
+    let next;
+    if(e.key==="ArrowRight") next=(i+1)%buttons.length;
+    if(e.key==="ArrowLeft") next=(i+buttons.length-1)%buttons.length;
+    if(e.key==="Home") next=0;
+    if(e.key==="End") next=buttons.length-1;
+    if(next!==undefined){e.preventDefault();showTab(buttons[next].dataset.tab);buttons[next].focus();}
+  });
+});
+const initial=(location.hash||"").replace("#","");
+if(["3d","escenas","electrico","logica","catalogo"].includes(initial)) showTab(initial);
+
+/* ============ ESTADO DE SIMULACIÓN ============ */
+const S={
+  accel:true, requested:"FALL", applied:"FALL", phase:"idle", phaseStart:0, phaseEnd:0, cfgMode:null, queued:null,
+  boot:{i:0,end:0}, appliedFlash:0, fallAlertUntil:0, envFlash:0,
+  geo:{h:2.7,ang:40},
+  fall:{x:0.9,y:-0.6,posture:"stand",walking:false,a:0,dragging:false,lastMove:0,fallStart:0,confirmed:false,confirmT:0,absentSince:null,trail:[],lastTrail:0,outFallLogged:false},
+  sleep:{sc:"tranquilo",scSince:0,dist:1.0,rrBuf:[],hrBuf:[],wave:[],lastSample:0},
+  env:{sc:"normal",T:22.5,H:58,V:100,hist:{V0:[],V1:[],V12:[]},lastPub:-999},
+  pub:{}, csv:[], lastRead:0, lastNum:0
+};
+const times=()=>S.accel?{wait:4,cfg:2,env:10}:{wait:20,cfg:10,env:100};
+const BOOT=[["Puerto serie y UART2",0.6,0.6,"lg1"],["hu.begin() y calibración",10,2.5,"lg2"],["I²C y SHT40",0.6,0.6,"lg3"],["Conectando Wi-Fi",3,1,"lg3"],["Blynk y syncVirtual(V10)",2,1,"lg3"]];
+const K=65, CX=170, FLOOR=225;
+
+/* ---------- registro, notificaciones, pulsos ---------- */
+function csvLine(variable,valor){
+  S.csv.push(`${Math.round(now()*1000)},${S.applied},${variable},${valor}`);
+  if(S.csv.length>11) S.csv.shift();
+  $("#csv").innerHTML='<span class="h">millis_ms,modo_aplicado,variable,valor</span>\n'+S.csv.join("\n");
+}
+let toastTimer=null;
+function notify(title,body,crit){
+  const box=$("#notifs"); const e=box.querySelector(".empty"); if(e) e.remove();
+  const n=document.createElement("div"); n.className="notif"+(crit?" crit":"");
+  n.innerHTML=`<b></b><span></span><time>${clock()}</time>`;
+  n.querySelector("b").textContent=title; n.querySelector("span").textContent=body;
+  box.prepend(n); while(box.children.length>7) box.lastChild.remove();
+  $("#toastT").textContent=title; $("#toastB").textContent=body; $("#toast").hidden=false;
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{$("#toast").hidden=true},4000);
+  flow(["wifi"]);
+}
+const wireTimers={};
+function liveWire(ids,ms=900){ids.forEach(id=>{const el=document.getElementById(id); if(!el) return; el.classList.add("live"); clearTimeout(wireTimers[id]); wireTimers[id]=setTimeout(()=>el.classList.remove("live"),ms);});}
+function flow(kinds){
+  kinds.forEach(k=>{
+    if(k==="uart") liveWire(["wTx","wRx"]);
+    if(k==="i2c") liveWire(["wSda","wScl","wSda2"]);
+    if(k==="wifi") liveWire(["wRf"],1200);
+    if(window.__twin) window.__twin.packet(k);
+  });
+}
+function setStatus(t){$("#status").textContent=t;}
+
+/* ---------- datastreams ---------- */
+function tile(id,val,opts={}){
+  const el=document.getElementById(id); if(!el) return;
+  el.querySelector(".val").innerHTML=val;
+  el.classList.toggle("off",!!opts.off);
+  el.classList.remove("crit","warn","okv");
+  if(opts.cls) el.classList.add(opts.cls);
+  if(opts.note!==undefined){const n=el.querySelector(".note"); if(n) n.textContent=opts.note;}
+}
+function publish(pin,key,html,opts){
+  if(S.pub[pin]===key) return false;
+  S.pub[pin]=key; tile("t"+pin,html,opts);
+  const el=document.getElementById("t"+pin);
+  if(!opts||!opts.off){el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),500);flow(["wifi"]);}
+  return true;
+}
+
+/* ---------- máquina de modos ---------- */
+function request(mode){
+  S.requested=mode; renderSeg();
+  if(S.phase==="boot"){S.queued=mode; setStatus(`Solicitud ${mode} registrada; se atiende tras el arranque`); return;}
+  if(S.phase==="config"){S.queued=mode; setStatus(`Solicitud ${mode} registrada; se atiende al terminar la configuración`); return;}
+  if(mode===S.applied){ if(S.phase==="wait"){S.phase="idle"; setStatus(`Solicitud cancelada: ${mode} ya está aplicado`);} return; }
+  const w=times().wait;
+  S.phase="wait"; S.phaseStart=now(); S.phaseEnd=now()+w;
+  setStatus(`V10 = ${mode==="FALL"?0:1}: se solicita ${mode}. Espera de ${w} s`);
+  csvLine("v10_solicitud",mode==="FALL"?0:1);
+}
+function renderSeg(){
+  $("#mFall").setAttribute("aria-pressed",S.requested==="FALL");
+  $("#mSleep").setAttribute("aria-pressed",S.requested==="SLEEP");
+  $("#v10").setAttribute("aria-checked",S.requested==="SLEEP");
+  $("#v10lbl").textContent=S.requested==="SLEEP"?"sleep":"fall";
+}
+function startBoot(){
+  S.phase="boot"; S.boot.i=0; S.phaseStart=now(); S.boot.end=now()+BOOT[0][S.accel?2:1];
+  S.pub={}; S.applied="FALL"; S.requested=S.requested; renderSeg();
+  setStatus("Reinicio: "+BOOT[0][0]);
+}
+function stepModeMachine(){
+  const t=now(), tm=times(); let prog=1;
+  if(S.phase==="boot"){
+    const total=BOOT.reduce((a,b)=>a+b[S.accel?2:1],0);
+    let done=0; for(let i=0;i<S.boot.i;i++) done+=BOOT[i][S.accel?2:1];
+    const cur=BOOT[S.boot.i][S.accel?2:1];
+    prog=(done+cur-(S.boot.end-t))/total;
+    if(t>=S.boot.end){
+      S.boot.i++;
+      if(S.boot.i>=BOOT.length){
+        S.phase="idle"; S.pub={}; S.fall.lastMove=t; S.env.lastPub=-999;
+        setStatus("Arranque completo · modo FALL aplicado");
+        $("#onlineDot").style.background=""; $("#onlineTxt").textContent="Piloto 01 en línea"; $("#eBlynk").textContent="en línea";
+        if(S.queued&&S.queued!==S.applied){const q=S.queued;S.queued=null;request(q);} else S.queued=null;
+      } else { S.boot.end=t+BOOT[S.boot.i][S.accel?2:1]; setStatus("Reinicio: "+BOOT[S.boot.i][0]); }
+    }
+    const online=S.boot.i>=4;
+    $("#onlineDot").style.background=online?"":"var(--warn)";
+    $("#onlineTxt").textContent=online?"Piloto 01 en línea":"Piloto 01 desconectado"; $("#eBlynk").textContent=online?"en línea":"desconectado";
+  } else if(S.phase==="wait"){
+    prog=(t-S.phaseStart)/(S.phaseEnd-S.phaseStart);
+    setStatus(`Espera de cambio a ${S.requested}: faltan ${Math.max(0,Math.ceil(S.phaseEnd-t))} s`);
+    if(t>=S.phaseEnd){
+      if(S.requested===S.applied){S.phase="idle";}
+      else{ S.phase="config"; S.cfgMode=S.requested; S.phaseStart=t; S.phaseEnd=t+tm.cfg; S.pub={};
+        setStatus(`Radar configurándose: hu.configWorkMode(${S.cfgMode==="FALL"?"hu.eFallingMode":"hu.eSleepMode"})`); flow(["uart"]); }
+    }
+  } else if(S.phase==="config"){
+    prog=(t-S.phaseStart)/(S.phaseEnd-S.phaseStart);
+    if(t>=S.phaseEnd){
+      S.applied=S.cfgMode; S.phase="idle"; S.pub={}; S.appliedFlash=t+1.6;
+      if(S.applied==="FALL"){S.fall.lastMove=t;} else {S.sleep.scSince=t;S.sleep.rrBuf=[];S.sleep.hrBuf=[];}
+      setStatus(`Modo ${S.applied} aplicado`);
+      notify(`Modo ${S.applied} aplicado`,"El radar confirmó el cambio.",false);
+      csvLine("v11_aplicado",S.applied==="FALL"?0:1);
+      if(S.queued&&S.queued!==S.applied){const q=S.queued;S.queued=null;request(q);} else S.queued=null;
+    }
+  }
+  const ph=S.phase;
+  $("#bar").style.width=(ph==="idle"?100:clamp(prog,0,1)*100)+"%";
+  $("#v11").textContent=(ph==="config"||ph==="boot")?"…":S.applied;
+  const ov=ph==="config"||ph==="boot";
+  $("#overlay").hidden=!ov;
+  if(ph==="boot"){ $("#ovEy").textContent="Arranque del ESP32"; $("#ovTitle").textContent=BOOT[S.boot.i]?BOOT[S.boot.i][0]:"Arrancando"; $("#ovTxt").textContent="hu.begin() espera internamente unos 10 s. Hasta terminar setup() no hay datos ni conexión con Blynk."; }
+  else { $("#ovEy").textContent="Radar reconfigurándose"; $("#ovTitle").textContent=`Aplicando ${S.cfgMode||""}`; $("#ovTxt").textContent="configWorkMode() bloquea unos 10 s en el firmware actual. Durante ese tiempo no hay datos del radar."; }
+  $("#sceneFall").hidden=S.applied!=="FALL";
+  $("#sceneSleep").hidden=S.applied!=="SLEEP";
+  $("#exMode").textContent="modo "+S.applied;
+}
+
+/* ---------- escena FALL ---------- */
+const radius=()=>S.geo.h*Math.tan(S.geo.ang*Math.PI/180);
+function buildPlanGrid(){
+  let g="",tk="";
+  for(let m=-2.4;m<=2.41;m+=0.5){const p=CX+m*K; g+=`<line x1="${p}" y1="14" x2="${p}" y2="326" stroke="var(--line)" stroke-width="0.6"/><line x1="14" y1="${p}" x2="326" y2="${p}" stroke="var(--line)" stroke-width="0.6"/>`;}
+  for(let m=-2;m<=2;m++){const p=CX+m*K; tk+=`<line x1="${p}" y1="326" x2="${p}" y2="333" stroke="var(--muted)"/><text x="${p}" y="347" font-size="10" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono, monospace">${m} m</text>`;}
+  $("#grid").innerHTML=g; $("#ticks").innerHTML=tk;
+}
+function svgPoint(svg,evt){const pt=svg.createSVGPoint();pt.x=evt.clientX;pt.y=evt.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse());}
+function setupDrag(){
+  const svg=$("#svgPlan");
+  const move=e=>{ if(!S.fall.dragging) return; const p=svgPoint(svg,e);
+    S.fall.x=clamp((p.x-CX)/K,-2.25,2.25); S.fall.y=clamp((p.y-CX)/K,-2.25,2.25); S.fall.lastMove=now(); };
+  $("#personPlan").addEventListener("pointerdown",e=>{ if(S.fall.posture==="absent") return;
+    S.fall.dragging=true; S.fall.walking=false; renderFallBtns(); svg.setPointerCapture(e.pointerId); move(e); });
+  svg.addEventListener("pointermove",move);
+  const end=()=>{S.fall.dragging=false;};
+  svg.addEventListener("pointerup",end); svg.addEventListener("pointercancel",end);
+}
+function renderFallBtns(){ const F=S.fall; $("#fWalk").setAttribute("aria-pressed",F.walking); $("#fOut").textContent=F.posture==="absent"?"Entrar al baño":"Salir del baño"; }
+function fallState(){
+  const F=S.fall, t=now(), r=radius();
+  const present=F.posture!=="absent";
+  const inCov=present&&Math.hypot(F.x,F.y)<=r;
+  if(F.walking&&F.posture==="stand"){ F.a+=0.04; F.x=1.25*Math.cos(F.a)+0.25*Math.sin(2*F.a); F.y=0.95*Math.sin(F.a); F.lastMove=t; }
+  if(!inCov){ if(F.absentSince===null) F.absentSince=t; } else F.absentSince=null;
+  const moving=(t-F.lastMove)<1.5;
+  let fall=0;
+  const radarOn=S.applied==="FALL"&&S.phase!=="config"&&S.phase!=="boot";
+  if(F.posture==="fallen"&&radarOn){
+    if(inCov){
+      if(!F.confirmed&&t-F.fallStart>=3){
+        F.confirmed=true; F.confirmT=t; S.fallAlertUntil=t+3;
+        notify("Posible caída detectada","Baño · Piloto 01. Estado sostenido 3 s. Revise a la persona.",true);
+        csvLine("caida_confirmada",1);
+      }
+      fall=F.confirmed?2:1;
+    } else if(!F.outFallLogged){ F.outFallLogged=true; setStatus("Caída fuera de la cobertura: el radar no la detecta. Limitación a documentar."); }
+  }
+  if(inCov&&t-F.lastTrail>=0.5){ F.lastTrail=t; F.trail.push([F.x,F.y]); if(F.trail.length>40) F.trail.shift(); }
+  return {inCov,present,moving,fall, still: inCov&&!moving? t-F.lastMove : 0,
+    unmanned: F.absentSince===null?0:t-F.absentSince, fallTime: F.confirmed? t-F.confirmT : 0,
+    range: !inCov?0: moving? clamp(70+rnd(15),0,100) : clamp(10+rnd(5),0,100)};
+}
+function renderFallScene(st){
+  const F=S.fall, h=S.geo.h, r=radius(), ceilY=FLOOR-h*K;
+  $("#gHv").textContent=fmt(h,2)+" m"; $("#gAv").textContent=S.geo.ang+"°"; $("#gR").textContent=fmt(r,2)+" m";
+  $("#ceil").setAttribute("y1",ceilY); $("#ceil").setAttribute("y2",ceilY); $("#radarSide").setAttribute("y",ceilY);
+  $("#cone").setAttribute("points",`${CX},${ceilY+7} ${CX-r*K},${FLOOR} ${CX+r*K},${FLOOR}`);
+  $("#dimL").setAttribute("y1",ceilY); $("#dimT").setAttribute("y1",ceilY); $("#dimT").setAttribute("y2",ceilY);
+  $("#dimTxt").setAttribute("y",(ceilY+FLOOR)/2); $("#dimTxt").textContent=fmt(h,2)+" m";
+  $("#covPlan").setAttribute("r",Math.min(r*K,400));
+  const px=CX+F.x*K, py=CX+F.y*K, head=$("#psHead"), body=$("#psBody");
+  $("#personSide").style.display=F.posture==="absent"?"none":"";
+  if(F.posture==="fallen"){ head.setAttribute("cx",px-50); head.setAttribute("cy",FLOOR-9);
+    body.setAttribute("x1",px-40); body.setAttribute("y1",FLOOR-6); body.setAttribute("x2",px+55); body.setAttribute("y2",FLOOR-6);
+  } else { head.setAttribute("cx",px); head.setAttribute("cy",FLOOR-1.7*K+9);
+    body.setAttribute("x1",px); body.setAttribute("y1",FLOOR-1.7*K+20); body.setAttribute("x2",px); body.setAttribute("y2",FLOOR-5); }
+  const col=st.fall===2?"var(--crit)":st.fall===1?"var(--warn)":"var(--body)";
+  head.setAttribute("fill",col); body.setAttribute("stroke",col);
+  $("#personPlan").style.display=F.posture==="absent"?"none":"";
+  $("#ppBody").setAttribute("cx",px); $("#ppBody").setAttribute("cy",py);
+  $("#ppBody").setAttribute("rx",F.posture==="fallen"?20:9); $("#ppBody").setAttribute("fill",col);
+  $("#ppHalo").setAttribute("cx",px); $("#ppHalo").setAttribute("cy",py); $("#ppHalo").setAttribute("opacity",st.inCov?.18:.06);
+  $("#trail").setAttribute("points",F.trail.map(p=>`${CX+p[0]*K},${CX+p[1]*K}`).join(" "));
+  $("#trailDots").innerHTML=F.trail.map((p,i)=>`<circle cx="${CX+p[0]*K}" cy="${CX+p[1]*K}" r="2" fill="var(--signal)" opacity="${(0.2+0.8*i/F.trail.length).toFixed(2)}"/>`).join("");
+}
+
+/* ---------- escena SLEEP ---------- */
+const SC={tranquilo:{rr:14,hr:64},lenta:{rr:7,hr:56},rapida:{rr:26,hr:94},moviendo:{rr:16,hr:78},ausente:{rr:0,hr:0}};
+function sleepQuality(){const d=S.sleep.dist; return d>2.5?0:d>1.8?1:2;}
+function sleepState(){
+  const L=S.sleep, p=SC[L.sc], q=sleepQuality(), t=now();
+  const absent=L.sc==="ausente"||q===0;
+  const noise=(L.sc==="moviendo"?6:0.8)*(1+L.dist*0.6);
+  let rr=null,hr=null; if(!absent){rr=p.rr+rnd(noise); hr=p.hr+rnd(noise*1.6);}
+  let breathe=4; if(!absent){breathe=p.rr<10?3:p.rr>22?2:1;}
+  let sleep="Ausente";
+  if(!absent){ if(L.sc==="moviendo"||L.sc==="rapida") sleep="Despierta"; else if(L.sc==="lenta"||t-L.scSince>15) sleep="Sueño profundo"; else sleep="Sueño ligero"; }
+  return {absent,rr,hr,breathe,sleep,q};
+}
+function sampleWave(){
+  const L=S.sleep, p=SC[L.sc], t=now(), absent=L.sc==="ausente"||sleepQuality()===0;
+  let y=rnd(0.05);
+  if(!absent){ y+=Math.sin(2*Math.PI*(p.rr/60)*t)+Math.sin(2*Math.PI*(p.hr/60)*t)*0.12;
+    if(L.sc==="moviendo") y+=Math.sin(t*1.7)*0.9*Math.sin(t*0.37)+rnd(0.5);
+    y*=sleepQuality()===1?0.6:1; }
+  L.wave.push(y); if(L.wave.length>300) L.wave.shift();
+}
+function drawWave(){
+  const c=$("#wave"); if(!c||$("#p-escenas").hidden||$("#sceneSleep").hidden) return;
+  const ctx=c.getContext("2d"), W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H); ctx.strokeStyle=tok("--line"); ctx.lineWidth=1;
+  for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(0,H*i/4);ctx.lineTo(W,H*i/4);ctx.stroke();}
+  const w=S.sleep.wave; if(w.length<2) return;
+  ctx.strokeStyle=tok("--night"); ctx.lineWidth=3; ctx.beginPath();
+  w.forEach((v,i)=>{const x=W*i/299, y=H/2-v*H*0.32; i?ctx.lineTo(x,y):ctx.moveTo(x,y);}); ctx.stroke();
+  ctx.fillStyle=tok("--muted"); ctx.font="22px JetBrains Mono, monospace"; ctx.fillText("últimos 10 s",14,30);
+}
+function renderSleepScene(st){
+  const L=S.sleep, d=L.dist, k=55, chestY=185, radY=Math.max(26,chestY-d*k);
+  $("#sDv").textContent=fmt(d,2)+" m"; $("#sQ").textContent=["Fuera de alcance","Degradada","Buena"][st.q];
+  $("#radarSleep").setAttribute("y",radY-7); $("#bracket").setAttribute("y2",radY-7);
+  $("#beam").setAttribute("points",`160,${radY} 148,${chestY+1} 178,${chestY+1}`);
+  $("#sDimTxt").setAttribute("y",(radY+chestY)/2); $("#sDimTxt").textContent=fmt(d,2)+" m";
+  $("#sleeper").style.display=L.sc==="ausente"?"none":"";
+  const last=L.wave.length?L.wave[L.wave.length-1]:0;
+  $("#chest").setAttribute("ry",(6+last*2.2).toFixed(2));
+  $$("#sceneSleep [data-sl]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.sl===L.sc));
+}
+function median(a){const s=[...a].sort((x,y)=>x-y);return s.length?s[Math.floor(s.length/2)]:null;}
+
+/* ---------- ambiente ---------- */
+const ENV={normal:[22.5,58,100],ventana:[19,70,90],ducha:[25.5,86,125],limpieza:[22.5,57,330],humo:[31,44,430]};
+function dew(T,H){const a=17.62,b=243.12,g=Math.log(H/100)+a*T/(b+T);return b*g/(a-g);}
+function stepEnv(dt){
+  const E=S.env, tg=ENV[E.sc], k=Math.min(1,dt/6);
+  E.T+=(tg[0]-E.T)*k+rnd(0.02); E.H+=(tg[1]-E.H)*k+rnd(0.08); E.V+=(tg[2]-E.V)*k+rnd(0.6);
+  const t=now(), iv=times().env;
+  if(S.phase==="boot"){ $("#envNext").textContent="esperando arranque"; return; }
+  if(t-E.lastPub>=iv){
+    E.lastPub=t; S.envFlash=t+1.4;
+    const P={T:E.T,H:clamp(E.H,0,100),V:clamp(E.V,0,500)};
+    [["V0",P.T],["V1",P.H],["V12",P.V]].forEach(([k2,v])=>{E.hist[k2].push(v); if(E.hist[k2].length>30) E.hist[k2].shift();});
+    tile("tV0",`${fmt(P.T)} <small>°C</small>`); tile("tV1",`${fmt(P.H)} <small>% HR</small>`);
+    tile("tV12",`${Math.round(P.V)} <small>índice VOC</small>`,{cls:P.V>250?"warn":null});
+    tile("tDew",`${fmt(dew(P.T,P.H))} <small>°C</small>`);
+    ["tV0","tV1","tV12"].forEach(id=>{const el=document.getElementById(id);el.classList.add("flash");setTimeout(()=>el.classList.remove("flash"),500);});
+    drawSparks(); flow(["i2c","wifi"]);
+    csvLine("temperatura",fmt(P.T).replace(",","."));
+    $("#envNote").textContent=E.sc==="humo"?"Temperatura y VOC suben juntos: patrón compatible con combustión. Solo se muestra en números; no hay alarma de incendio.":"Solo indicadores numéricos, sin alarma. Índice VOC: 100 es el promedio aprendido del ambiente.";
+  }
+  $("#envNext").textContent=`cada ${iv} s · próxima en ${Math.max(0,Math.ceil(iv-(t-E.lastPub)))} s`;
+}
+function drawSparks(){
+  [["V0","--signal"],["V1","--night"],["V12","--warn"]].forEach(([k,col])=>{
+    const c=document.getElementById("sp"+k), ctx=c.getContext("2d"), W=c.width, H=c.height, d=S.env.hist[k], color=tok(col);
+    ctx.clearRect(0,0,W,H); if(d.length<2) return;
+    const mn=Math.min(...d), mx=Math.max(...d), span=Math.max(mx-mn,k==="V12"?20:1);
+    const X=i=>W*i/(d.length-1), Y=v=>H-6-(v-mn)/span*(H-12);
+    ctx.beginPath(); d.forEach((v,i)=>i?ctx.lineTo(X(i),Y(v)):ctx.moveTo(X(i),Y(v))); ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+    ctx.globalAlpha=.15; ctx.fillStyle=color; ctx.fill(); ctx.globalAlpha=1;
+    ctx.beginPath(); d.forEach((v,i)=>i?ctx.lineTo(X(i),Y(v)):ctx.moveTo(X(i),Y(v))); ctx.strokeStyle=color; ctx.lineWidth=3; ctx.stroke();
+    ctx.beginPath(); ctx.arc(X(d.length-1),Y(d[d.length-1]),5,0,7); ctx.fillStyle=color; ctx.fill();
+  });
+}
+
+/* ---------- tiles del radar y extras ---------- */
+const FALL_LBL=["Sin caída","Posible caída…","Caída confirmada"];
+function renderRadarTiles(fst,sst){
+  const blocked=S.phase==="config"||S.phase==="boot", isF=S.applied==="FALL"&&!blocked, isS=S.applied==="SLEEP"&&!blocked;
+  const offNote=S.phase==="boot"?"Arrancando":S.phase==="config"?"Radar configurándose":"Sin dato en este modo";
+  $("#gFallSt").textContent=isF?"activo":blocked?"sin datos":"sin dato";
+  $("#gSleepSt").textContent=isS?"activo":blocked?"sin datos":"sin dato";
+  const t=now(), numTick=t-S.lastNum>=2;
+  if(isF){
+    publish("V2","p"+(fst.inCov?1:0),fst.inCov?"Presente":"Sin persona",{cls:fst.inCov?"okv":null,note:"Al cambiar"});
+    publish("V3","f"+fst.fall,FALL_LBL[fst.fall],{cls:fst.fall===2?"crit":fst.fall===1?"warn":null,note:"Evento push"});
+    if(fst.fall===2) document.querySelector("#tV3 .note").textContent=`Duración ${Math.round(fst.fallTime)} s`;
+    if(numTick){
+      publish("V4","m"+Math.round(fst.range/5),`${Math.round(fst.range)} <small>${!fst.inCov?"sin persona":fst.moving?"activo":"estático"}</small>`,{note:"Escala por verificar"});
+      publish("V9","s"+Math.floor(fst.still/2),`${Math.round(fst.still)} <small>s quieta</small>`,{cls:fst.still>20?"warn":null,note:"Propuesto"});
+    }
+  } else ["V2","V3","V4","V9"].forEach(p=>publish(p,"off"+offNote,"—",{off:true,note:offNote}));
+  if(isS){
+    if(numTick){
+      const rr=median(S.sleep.rrBuf), hr=median(S.sleep.hrBuf);
+      publish("V5","r"+(rr===null?"x":Math.round(rr)),rr===null?"Sin lectura":`${Math.round(rr)} <small>rpm</small>`,{note:"Mediana de 5 lecturas"});
+      publish("V6","h"+(hr===null?"x":Math.round(hr)),hr===null?"Sin lectura":`${Math.round(hr)} <small>lpm</small>`,{note:"Estimación"});
+    }
+    const BL={1:"Normal",2:"Muy rápida",3:"Muy lenta",4:"Sin detección"};
+    publish("V8","b"+sst.breathe,`${sst.breathe} <small>${BL[sst.breathe]}</small>`,{cls:sst.breathe===2||sst.breathe===3?"warn":sst.breathe===1?"okv":null,note:"getBreatheState()"});
+    publish("V7","z"+sst.sleep,sst.sleep,{note:"Categorías ilustrativas"});
+  } else ["V5","V6","V7","V8"].forEach(p=>publish(p,"off"+offNote,"—",{off:true,note:offNote}));
+  if(numTick) S.lastNum=t;
+}
+function renderExtras(fst,sst){
+  if($("#p-escenas").hidden) return;
+  const blocked=S.phase==="config"||S.phase==="boot", F=S.fall, L=S.sleep, ok=!blocked;
+  const na='<span class="muted">—</span>', B='<span class="dest b">Blynk</span>', C='<span class="dest">CSV</span>', BC=B+" "+C;
+  const rows=S.applied==="FALL"?[
+    ["track(&x, &y)","Posición aproximada en el plano", ok&&fst.inCov?`${Math.round(F.x*100)}, ${Math.round(F.y*100)} cm`:na, C],
+    ["trackFrequency()","Frecuencia de reporte de puntos", ok?"2 Hz (simulado)":na, C],
+    ["staticResidencyTime()","Tiempo quieta en un punto", ok?`${Math.round(fst.still)} s`:na, BC],
+    ["unmannedTime()","Tiempo sin persona", ok?`${Math.round(fst.unmanned)} s`:na, BC],
+    ["getFallTime()","Duración de la caída", ok&&fst.fall===2?`${Math.round(fst.fallTime)} s`:na, BC],
+    ["dmGetInstallHeight()","Altura configurada", ok?`${Math.round(S.geo.h*100)} cm`:na, C],
+    ["getWorkMode()","Modo real del radar (para V11)", blocked?"…":"FALL", B]
+  ]:[
+    ["getBreatheValue()","Respiración estimada", ok&&!sst.absent?`${Math.round(sst.rr)}`:na, BC],
+    ["getHeartRate()","Frecuencia cardíaca estimada", ok&&!sst.absent?`${Math.round(sst.hr)}`:na, BC],
+    ["getBreatheState()","1 normal · 2 rápida · 3 lenta · 4 ninguna", ok?`${sst.breathe}`:na, BC],
+    ["smSleepData(...)","Estado de sueño (enum eSmSleep)", ok?sst.sleep:na, BC],
+    ["getSleepStatistics()","Resumen de la noche (estructura)", ok?`${Math.round(now()-L.scSince)} s en escena`:na, C],
+    ["getWorkMode()","Modo real del radar (para V11)", blocked?"…":"SLEEP", B]
+  ];
+  $("#exBody").innerHTML=rows.map(r=>`<tr><td><code>${r[0]}</code></td><td>${r[1]}</td><td class="v">${r[2]}</td><td>${r[3]}</td></tr>`).join("");
+}
+
+/* ---------- lógica resaltada ---------- */
+function renderLogic(fst){
+  if($("#p-logica").hidden) return;
+  const t=now(), on=new Set(); let alert=false;
+  if(S.phase==="boot"){ on.add(BOOT[S.boot.i]?BOOT[S.boot.i][3]:"lg3"); }
+  else {
+    on.add("lg4");
+    if(S.phase==="wait"){on.add("lg5");on.add("lg6");}
+    else if(S.phase==="config") on.add("lg7");
+    else {
+      on.add("lg9");
+      if(t<S.appliedFlash) on.add("lg8");
+      if(S.applied==="FALL"&&fst.fall===1) on.add("lg10");
+      if(S.applied==="FALL"&&(fst.fall===2&&t<S.fallAlertUntil)){on.add("lg11");alert=true;}
+    }
+    if(t<S.envFlash) on.add("lg12");
+  }
+  $$("#logic .lg").forEach(el=>{el.classList.toggle("on",on.has(el.id)); el.classList.toggle("alert",alert&&el.id==="lg11");});
+}
+
+/* ---------- eventos ---------- */
+$("#mFall").addEventListener("click",()=>request("FALL"));
+$("#mSleep").addEventListener("click",()=>request("SLEEP"));
+$("#v10").addEventListener("click",()=>request(S.requested==="FALL"?"SLEEP":"FALL"));
+$("#accel").addEventListener("change",e=>{S.accel=e.target.checked; S.env.lastPub=-999;});
+$("#reboot").addEventListener("click",startBoot);
+$("#fWalk").addEventListener("click",()=>{const F=S.fall; if(F.posture!=="stand"){F.posture="stand";F.confirmed=false;} F.walking=!F.walking; F.a=Math.atan2(F.y/0.95,F.x/1.25); renderFallBtns();});
+$("#fStill").addEventListener("click",()=>{S.fall.walking=false; renderFallBtns();});
+$("#fFall").addEventListener("click",()=>{const F=S.fall; if(F.posture!=="stand") return; F.posture="fallen"; F.walking=false; F.fallStart=now(); F.confirmed=false; F.outFallLogged=false; F.lastMove=now(); renderFallBtns(); csvLine("caida_inicio",1);});
+$("#fUp").addEventListener("click",()=>{const F=S.fall; if(F.posture!=="fallen") return; F.posture="stand"; F.confirmed=false; F.lastMove=now(); setStatus("La persona se levantó; el estado de caída vuelve a normal"); renderFallBtns();});
+$("#fOut").addEventListener("click",()=>{const F=S.fall; if(F.posture==="absent"){F.posture="stand"; F.x=2.1; F.y=-0.1; F.lastMove=now();} else {F.posture="absent"; F.walking=false; F.confirmed=false; F.trail=[];} renderFallBtns();});
+$("#gH").addEventListener("input",e=>{S.geo.h=+e.target.value;});
+$("#gA").addEventListener("input",e=>{S.geo.ang=+e.target.value;});
+$$("#sceneSleep [data-sl]").forEach(b=>b.addEventListener("click",()=>{S.sleep.sc=b.dataset.sl; S.sleep.scSince=now(); S.sleep.rrBuf=[]; S.sleep.hrBuf=[];}));
+$("#sD").addEventListener("input",e=>{S.sleep.dist=+e.target.value;});
+$("#envSc").addEventListener("change",e=>{S.env.sc=e.target.value;});
+
+/* ---------- bucle de simulación ---------- */
+let lastTick=now();
+function tick(){
+  const t=now(), dt=t-lastTick; lastTick=t;
+  stepModeMachine();
+  const fst=fallState();
+  if(S.applied==="FALL"&&!$("#p-escenas").hidden) renderFallScene(fst);
+  if(t-S.sleep.lastSample>=1/30){S.sleep.lastSample=t; sampleWave();}
+  const sst=sleepState();
+  if(S.applied==="SLEEP"&&!$("#p-escenas").hidden) renderSleepScene(sst);
+  if(t-S.lastRead>=1&&S.phase!=="config"&&S.phase!=="boot"){
+    S.lastRead=t;
+    if(S.applied==="SLEEP"){
+      if(sst.rr!==null){S.sleep.rrBuf.push(sst.rr);S.sleep.hrBuf.push(sst.hr);} else {S.sleep.rrBuf=[];S.sleep.hrBuf=[];}
+      if(S.sleep.rrBuf.length>5){S.sleep.rrBuf.shift();S.sleep.hrBuf.shift();}
+      csvLine("respiracion",sst.rr===null?"NA":Math.round(sst.rr));
+      csvLine("frecuencia_cardiaca",sst.hr===null?"NA":Math.round(sst.hr));
+    } else {
+      csvLine("presencia",fst.inCov?1:0);
+      if(fst.inCov){csvLine("track_x",Math.round(S.fall.x*100));csvLine("track_y",Math.round(S.fall.y*100));}
+    }
+    flow(["uart"]);
+  }
+  renderRadarTiles(fst,sst);
+  renderExtras(fst,sst);
+  renderLogic(fst);
+  stepEnv(dt);
+}
+
+/* ============ GEMELO 3D (three.js) ============ */
+function initTwin(){
+  const stage=$("#stage");
+  if(!window.THREE){ const d=document.createElement("div"); d.className="nogl"; d.textContent="No se pudo cargar el visor 3D. Revisa la conexión; el resto de la página funciona igual."; stage.appendChild(d); return; }
+  let renderer;
+  try{ renderer=new THREE.WebGLRenderer({antialias:true,alpha:true}); }
+  catch(e){ const d=document.createElement("div"); d.className="nogl"; d.textContent="Este navegador no permite WebGL; el visor 3D no está disponible."; stage.appendChild(d); return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  stage.prepend(renderer.domElement);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(32,1,1,2000);
+  camera.position.set(95,75,110);
+  const controls=THREE.OrbitControls?new THREE.OrbitControls(camera,renderer.domElement):null;
+  if(controls){controls.target.set(-10,10,0); controls.enableDamping=true; controls.minDistance=50; controls.maxDistance=400;}
+  scene.add(new THREE.HemisphereLight(0xffffff,0x8899aa,0.85));
+  const dl=new THREE.DirectionalLight(0xffffff,0.75); dl.position.set(60,120,80); scene.add(dl);
+
+  const L=56,H=25,W=30,WALL=1.6;
+  const pickables=[], groups={};
+  const mat=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.6,metalness:.1},o));
+  function box(w,h,d,m,x,y,z,id){const me=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); me.position.set(x,y,z); if(id){me.userData.id=id; pickables.push(me);} return me;}
+  function group(id){const g=new THREE.Group(); g.userData.id=id; groups[id]=g; scene.add(g); return g;}
+
+  /* Carcasa */
+  const gShell=group("shell");
+  const shellMat=mat(0xd9e2e4,{transparent:true,opacity:.18,roughness:.4,depthWrite:false});
+  const shell=box(L,H,W,shellMat,0,H/2,0,"shell"); gShell.add(shell);
+  const edges=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(L,H,W)),new THREE.LineBasicMaterial({color:0x5a6b73}));
+  edges.position.copy(shell.position); gShell.add(edges);
+  const radome=box(30,0.4,26,mat(0x0a7470,{transparent:true,opacity:.25}),-8,H+0.2,0,"shell"); gShell.add(radome);
+  for(let i=0;i<5;i++) gShell.add(box(0.6,1.4,16,mat(0x33464e),L/2+0.05,6+i*3.2,0,"shell"));
+
+  /* ESP32 DevKit */
+  const gEsp=group("esp32");
+  gEsp.add(box(50,1.6,26,mat(0x1d2326),-1,4,0,"esp32"));
+  gEsp.add(box(18,2.6,16,mat(0xb8c2c6,{metalness:.7,roughness:.3}),11,6.1,0,"esp32"));
+  gEsp.add(box(6,0.4,16,mat(0x1d2326),22.5,5,0,"esp32"));
+  gEsp.add(box(7,3,8,mat(0x9aa5aa,{metalness:.6}),-24,6,0,"esp32"));
+  for(let i=0;i<15;i++){ gEsp.add(box(1,2.2,1,mat(0xc8a14a,{metalness:.6}),-19+i*2.54,5.8,11.5,"esp32")); gEsp.add(box(1,2.2,1,mat(0xc8a14a,{metalness:.6}),-19+i*2.54,5.8,-11.5,"esp32")); }
+  /* Antena (zona impresa del módulo) */
+  const gAnt=group("ant");
+  const ant=box(5,0.5,15,mat(0x0a7470,{emissive:0x0a3f3d,emissiveIntensity:.25}),22.5,5.5,0,"ant"); gAnt.add(ant);
+
+  /* C1001 */
+  const gRad=group("c1001");
+  gRad.add(box(30,1.6,26,mat(0x214f86),-8,21.8,0,"c1001"));
+  for(let ix=0;ix<2;ix++) for(let iz=0;iz<3;iz++) gRad.add(box(3.2,0.4,3.2,mat(0xc9a24a,{metalness:.7,roughness:.25}),-14+ix*6,22.8,-6+iz*6,"c1001"));
+  gRad.add(box(8,2,5,mat(0x2a2f33),2,20,0,"c1001"));
+  gRad.add(box(10,2.4,2.4,mat(0x2a2f33),-8,19.6,11,"c1001"));
+
+  /* Sensores */
+  const gSht=group("sht40"); gSht.add(box(10,1.2,10,mat(0x2c5d3a),20,13,-7,"sht40")); gSht.add(box(1.6,0.8,1.6,mat(0xdddddd),20,13.9,-7,"sht40"));
+  const gSgp=group("sgp40"); gSgp.add(box(10,1.2,10,mat(0x2c5d3a),20,13,7,"sgp40")); gSgp.add(box(2.4,1.2,2.4,mat(0xdddddd),20,14,7,"sgp40"));
+
+  /* Fuente externa */
+  const gPsu=group("psu");
+  gPsu.add(box(26,18,20,mat(0xe4e9ea),-82,9,0,"psu"));
+  gPsu.add(box(10,4,12,mat(0x1d2326),-82,19.5,0,"psu"));
+
+  /* Cables */
+  const wires=new THREE.Group(); scene.add(wires);
+  const paths={};
+  function wire(name,pts,color,r=0.6){
+    const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(...p)));
+    const m=new THREE.Mesh(new THREE.TubeGeometry(curve,48,r,8,false),mat(color,{roughness:.5}));
+    wires.add(m); paths[name]=paths[name]||[]; paths[name].push(curve); return m;
+  }
+  const C_UART=0xc7861a, C_I2C=0x7a4fb8, C_PWR=0xc03a28, C_GND=0x333b40;
+  wire("uart",[[-6,19.6,11],[-6,14,12],[-12,8,12],[-14.8,6.8,11.5]],C_UART);
+  wire("uart",[[-9,19.6,11],[-9,15,13],[-15,9,13],[-17.3,6.8,11.5]],C_UART);
+  wire("i2c",[[20,13.6,-7],[14,12,-11],[8,8,-12],[5.6,6.8,-11.5]],C_I2C);
+  wire("i2c",[[20,13.6,7],[14,12,10],[6,9,12],[3.1,6.8,11.5]],C_I2C);
+  wire("pwr",[[-11,19.6,11],[-12,16,13.5],[-19,9,13.5],[-19.8,6.8,11.5]],C_PWR);
+  wire("psu",[[-27,6,1.2],[-35,6,1.2],[-55,5,4],[-69,8,4]],C_PWR,0.9);
+  wire("psu",[[-27,6,-1.2],[-35,6,-1.2],[-55,5,-4],[-69,8,-4]],C_GND,0.9);
+
+  /* Cono del radar (indicativo, no a escala de alcance) */
+  const coneGeo=new THREE.ConeGeometry(48,70,40,1,true);
+  const cone=new THREE.Mesh(coneGeo,new THREE.MeshBasicMaterial({color:0x0a7470,transparent:true,opacity:.1,side:THREE.DoubleSide,depthWrite:false}));
+  cone.rotation.x=Math.PI; cone.position.set(-8,H+35,0); cone.visible=false; scene.add(cone);
+
+  /* Paquetes de datos y ondas Wi-Fi */
+  const packets=[];
+  function packet(kind){
+    const map={uart:"uart",i2c:"i2c",psu:"psu"};
+    if(kind==="wifi"){ wifiRing(); return; }
+    const list=paths[map[kind]]; if(!list||!flowOn) return;
+    list.forEach(curve=>{
+      const col=kind==="uart"?0xffc35a:kind==="i2c"?0xb98cff:0xff7a66;
+      const s=new THREE.Mesh(new THREE.SphereGeometry(1.1,12,12),new THREE.MeshBasicMaterial({color:col}));
+      scene.add(s); packets.push({s,curve,t:0,rev:kind==="i2c"||kind==="uart"});
+    });
+  }
+  const rings=[];
+  function wifiRing(){
+    if(!flowOn) return;
+    const r=new THREE.Mesh(new THREE.TorusGeometry(4,0.35,8,40),new THREE.MeshBasicMaterial({color:0x0a7470,transparent:true,opacity:.8}));
+    r.position.set(22.5,8,0); r.rotation.y=Math.PI/2; scene.add(r); rings.push({r,t:0});
+  }
+
+  /* Marcadores numerados */
+  const anchors={c1001:[-8,23.5,0],esp32:[-8,6,13],sht40:[20,15,-7],sgp40:[20,15,7],shell:[28,24,-15],psu:[-82,20,10],ant:[22.5,7,8]};
+  const markers={};
+  COMP.forEach(c=>{
+    const b=document.createElement("button"); b.type="button"; b.className="marker"; b.textContent=c.n; b.dataset.id=c.id;
+    b.setAttribute("aria-label",`${c.n}: ${c.name}`);
+    b.addEventListener("click",()=>{renderFicha(c.id); focus(c.id);});
+    stage.appendChild(b); markers[c.id]=b;
+  });
+
+  /* Selección */
+  const ray=new THREE.Raycaster(), mouse=new THREE.Vector2(); let down=null;
+  renderer.domElement.addEventListener("pointerdown",e=>{down=[e.clientX,e.clientY];});
+  renderer.domElement.addEventListener("pointerup",e=>{
+    if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5) return;
+    const r=renderer.domElement.getBoundingClientRect();
+    mouse.set(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
+    ray.setFromCamera(mouse,camera);
+    const hit=ray.intersectObjects(pickables,false).filter(h=>xray||h.object.userData.id!=="shell"||true);
+    const pref=hit.find(h=>h.object.userData.id!=="shell")||hit[0];
+    if(pref) renderFicha(pref.object.userData.id);
+  });
+  function highlight(id){
+    Object.entries(groups).forEach(([gid,g])=>g.traverse(o=>{ if(o.isMesh&&o.material.emissive&&o.userData.id){ o.material.emissive.setHex(gid===id?0x2a5a58:0x000000); o.material.emissiveIntensity=gid===id?0.8:0; } }));
+  }
+
+  /* Cámara */
+  const CAMS={iso:[[95,75,110],[-10,10,0]],frontal:[[-10,14,170],[-10,12,0]],lateral:[[170,14,0],[-10,12,0]],aerea:[[-10,190,0.1],[-10,0,0]]};
+  let camAnim=null;
+  function goCam(pos,target){ camAnim={p0:camera.position.clone(),t0:controls?controls.target.clone():new THREE.Vector3(),p1:new THREE.Vector3(...pos),t1:new THREE.Vector3(...target),k:0}; }
+  function focus(id){ const a=anchors[id]; if(!a) return; goCam([a[0]+55,a[1]+45,a[2]+70],a); }
+  $$("#camSeg button").forEach(b=>b.addEventListener("click",()=>{ $$("#camSeg button").forEach(x=>x.setAttribute("aria-pressed",x===b)); const c=CAMS[b.dataset.cam]; goCam(c[0],c[1]); }));
+
+  /* Interruptores */
+  let xray=true, flowOn=true;
+  const tog=(id,fn)=>$(id).addEventListener("click",e=>{const v=e.currentTarget.getAttribute("aria-pressed")!=="true"; e.currentTarget.setAttribute("aria-pressed",v); fn(v);});
+  tog("#tXray",v=>{xray=v; shellMat.opacity=v?.18:.92; shellMat.depthWrite=!v;});
+  tog("#tWires",v=>{wires.visible=v;});
+  tog("#tFlow",v=>{flowOn=v;});
+  tog("#tCone",v=>{cone.visible=v;});
+  tog("#tTags",v=>{Object.values(markers).forEach(m=>m.hidden=!v);});
+
+  /* Tamaño y bucle */
+  function resize(){ const w=stage.clientWidth, h=stage.clientHeight; if(!w||!h) return; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+  new ResizeObserver(resize).observe(stage); resize();
+  const v=new THREE.Vector3();
+  let last=performance.now();
+  function loop(){
+    requestAnimationFrame(loop);
+    if($("#p-3d").hidden) return;
+    const nowT=performance.now(), dt=Math.min(.05,(nowT-last)/1000); last=nowT;
+    if(camAnim){ camAnim.k=Math.min(1,camAnim.k+dt*1.6); const e=1-Math.pow(1-camAnim.k,3);
+      camera.position.lerpVectors(camAnim.p0,camAnim.p1,e); if(controls) controls.target.lerpVectors(camAnim.t0,camAnim.t1,e); if(camAnim.k>=1) camAnim=null; }
+    if(controls) controls.update();
+    for(let i=packets.length-1;i>=0;i--){ const p=packets[i]; p.t+=dt*1.4; const tt=Math.min(1,p.t); p.s.position.copy(p.curve.getPoint(p.rev?tt:tt)); if(p.t>=1){scene.remove(p.s); p.s.geometry.dispose(); packets.splice(i,1);} }
+    for(let i=rings.length-1;i>=0;i--){ const r=rings[i]; r.t+=dt; const s=1+r.t*5; r.r.scale.set(s,s,s); r.r.material.opacity=Math.max(0,.8-r.t*.8); if(r.t>=1){scene.remove(r.r); rings.splice(i,1);} }
+    cone.material.opacity=.08+.04*Math.sin(nowT/400);
+    renderer.render(scene,camera);
+    const rect=stage.getBoundingClientRect();
+    Object.entries(markers).forEach(([id,m])=>{ const a=anchors[id]; v.set(a[0],a[1],a[2]).project(camera);
+      m.style.left=((v.x+1)/2*rect.width)+"px"; m.style.top=((1-v.y)/2*rect.height)+"px"; m.style.visibility=(v.z<1&&v.z>-1)?"visible":"hidden"; });
+  }
+  loop();
+  window.__twin={packet,highlight,focus,resize,cone:v2=>{cone.visible=v2; $("#tCone").setAttribute("aria-pressed",v2);}};
+}
+
+/* ============ RECORRIDO GUIADO ============ */
+const TOUR=[
+  {t:"La persona refleja la onda",x:"El C1001 emite su señal FMCW desde la cara superior. El cuerpo la refleja con información de distancia y micro-movimientos.",id:"c1001",cone:true,flow:[]},
+  {t:"El radar procesa por dentro",x:"La FFT y los algoritmos internos del C1001 convierten la señal en presencia, caída, respiración y frecuencia cardíaca. Esta parte es cerrada.",id:"c1001",cone:true,flow:[]},
+  {t:"Los resultados viajan por UART",x:"El C1001 envía valores procesados a 115 200 baudios: su TX llega al GPIO16 y el GPIO17 le envía comandos de configuración.",id:"esp32",flow:["uart"]},
+  {t:"El ESP32 decide qué publicar",x:"Aplica el modo pedido por V10 tras 20 s, filtra lecturas no válidas y publica solo cuando un estado cambia.",id:"esp32",flow:["uart"]},
+  {t:"El ambiente como apoyo",x:"SHT40 y SGP40 comparten el bus I²C. Sus datos se publican cada 100 s y solo se muestran como números.",id:"sht40",flow:["i2c"]},
+  {t:"Wi-Fi hacia Blynk y el cuidador",x:"La antena del módulo envía los datos a Blynk Cloud. El cuidador ve el panel y recibe la alerta si hay una caída confirmada.",id:"ant",flow:["wifi"]}
+];
+let tourI=0, tourTimer=null;
+$("#tourDots").innerHTML=TOUR.map(()=>"<i></i>").join("");
+function renderTour(go){
+  const s=TOUR[tourI];
+  $("#tourN").textContent=`Etapa ${tourI+1} / ${TOUR.length}`; $("#tourT").textContent=s.t; $("#tourX").textContent=s.x;
+  $$("#tourDots i").forEach((d,i)=>d.classList.toggle("on",i===tourI));
+  if(go){ renderFicha(s.id); if(window.__twin){ window.__twin.focus(s.id); window.__twin.cone(!!s.cone); } flow(s.flow); }
+}
+$("#tourPrev").addEventListener("click",()=>{tourI=(tourI+TOUR.length-1)%TOUR.length; renderTour(true);});
+$("#tourNext").addEventListener("click",()=>{tourI=(tourI+1)%TOUR.length; renderTour(true);});
+$("#tourPlay").addEventListener("click",e=>{
+  if(tourTimer){clearInterval(tourTimer); tourTimer=null; e.currentTarget.textContent="Iniciar"; return;}
+  e.currentTarget.textContent="Pausar"; tourI=0; renderTour(true);
+  tourTimer=setInterval(()=>{tourI=(tourI+1)%TOUR.length; renderTour(true);},4500);
+});
+
+/* ============ ARRANQUE ============ */
+buildPlanGrid(); setupDrag(); renderSeg(); renderFallBtns(); renderTour(false);
+S.fall.lastMove=now();
+initTwin(); renderFicha("c1001");
+tick(); setInterval(tick,100);
+(function frame(){drawWave(); requestAnimationFrame(frame);})();
+})();
+</script>
+
+</body>
+</html>

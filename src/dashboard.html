@@ -1,0 +1,161 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>C1001 · Visualización en vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mismos tokens visuales que C1001_Prueba_Digital_Twin.html, para que las dos vistas se vean como un solo sistema */
+:root{
+  --bg:#EDF2F2; --surface:#FFFFFF; --sunk:#F5F8F8; --ink:#13232A; --muted:#566A72; --line:#D2DCDE;
+  --signal:#0A7470; --signal-soft:rgba(10,116,112,.12);
+  --night:#4A4FB8; --night-soft:rgba(74,79,184,.12);
+  --ok:#2E7D4F; --warn:#A86A12; --crit:#C03A28; --crit-soft:rgba(192,58,40,.12);
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1518; --surface:#142026; --sunk:#101A1F; --ink:#E2EBED; --muted:#8FA2A9; --line:#26373E;
+  --signal:#45C2B8; --signal-soft:rgba(69,194,184,.14);
+  --night:#9196F2; --night-soft:rgba(145,150,242,.15);
+  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1518; --surface:#142026; --sunk:#101A1F; --ink:#E2EBED; --muted:#8FA2A9; --line:#26373E;
+  --signal:#45C2B8; --signal-soft:rgba(69,194,184,.14);
+  --night:#9196F2; --night-soft:rgba(145,150,242,.15);
+  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15)}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+
+.topbar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;gap:10px;align-items:center}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--signal);display:grid;place-items:center;flex:none}
+.logo svg{width:22px;height:22px}
+.brand small{display:block;font-size:.75rem;color:var(--muted)}
+.conn{font-family:var(--f-mono);font-size:.78rem;display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--crit);display:inline-block}
+.dot.ok{background:var(--ok)}
+
+.wrap{max-width:900px;margin:0 auto;padding:18px 16px 40px;display:grid;gap:16px}
+.disclaimer{font-size:.8rem;color:var(--warn);background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px}
+.group-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.tile{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--sunk);display:grid;gap:2px;transition:border-color .3s,background .3s}
+.tile .pin{font-family:var(--f-mono);font-size:.68rem;color:var(--muted)}
+.tile .val{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.tile .val small{font-family:var(--f-body);font-size:.75rem;font-weight:400;color:var(--muted)}
+.tile.sindato{opacity:.5}
+.tile.sindato .val{color:var(--muted);font-size:1.1rem}
+.footer-note{font-size:.78rem;color:var(--muted)}
+</style>
+</head><body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></div>
+    <div><h1>C1001 · Visualización en vivo</h1><small>Datos reales desde Firebase Realtime Database</small></div>
+  </div>
+  <div class="conn"><span class="dot" id="connDot"></span><span id="connTxt">Conectando…</span></div>
+</header>
+
+<div class="wrap">
+  <p class="disclaimer">Esta vista muestra datos reales publicados por el dispositivo. Mientras no esté integrado el C1001 físico ni el SHT40/SGP40 reales, verás "— sin dato" o valores de prueba, no mediciones clínicas.</p>
+
+  <div class="card">
+    <div class="group-h"><h2>Ambiente</h2><span class="eyebrow" id="ambienteHora">sin lecturas aun</span></div>
+    <div class="tiles">
+      <div class="tile sindato" id="tTemp"><div class="pin">Temperatura</div><div class="val">—</div></div>
+      <div class="tile sindato" id="tHum"><div class="pin">Humedad relativa</div><div class="val">—</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="group-h"><h2>Modo del radar</h2><span class="eyebrow" id="modoHora">sin dato aun</span></div>
+    <div class="tiles">
+      <div class="tile sindato" id="tModo"><div class="pin">Modo aplicado</div><div class="val">—</div></div>
+    </div>
+    <p class="footer-note">Pendiente: el firmware todavia no publica este campo en <code>/estado_actual/modo</code>.</p>
+  </div>
+
+  <div class="card">
+    <div class="group-h"><h2>Radar · FALL / SLEEP</h2></div>
+    <div class="tiles">
+      <div class="tile sindato"><div class="pin">Presencia / caida</div><div class="val">— sin integrar</div></div>
+      <div class="tile sindato"><div class="pin">Respiracion / FC</div><div class="val">— sin integrar</div></div>
+    </div>
+    <p class="footer-note">Pendiente de implementar en el firmware (secciones 7-9 del plan). Estos campos no existen todavia en la base de datos.</p>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  // Nota: no se importa Analytics a proposito -- no aporta nada a este
+  // dashboard de telemetria y agrega una dependencia/consentimiento que
+  // no necesitamos para este proyecto.
+  const firebaseConfig = {
+    apiKey: "AIzaSyAoV1MZrzVjr9hF2kFWJC5rykMdQIaYKhs",
+    authDomain: "iot-monitoring-c1001-fb-test.firebaseapp.com",
+    databaseURL: "https://iot-monitoring-c1001-fb-test-default-rtdb.firebaseio.com",
+    projectId: "iot-monitoring-c1001-fb-test",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const connDot = document.getElementById("connDot");
+  const connTxt = document.getElementById("connTxt");
+
+  // Firebase expone esta ruta especial para saber si el navegador
+  // esta realmente conectado al servidor (no solo si el script cargo).
+  onValue(ref(db, ".info/connected"), (snap) => {
+    const conectado = snap.val() === true;
+    connDot.classList.toggle("ok", conectado);
+    connTxt.textContent = conectado ? "Conectado en vivo" : "Sin conexion";
+  });
+
+  function horaLegible(ms) {
+    if (!ms) return "sin lecturas aun";
+    const d = new Date(ms);
+    return "ultima lectura: " + d.toLocaleTimeString("es-PE");
+  }
+
+  onValue(ref(db, "estado_actual/ambiente"), (snap) => {
+    const datos = snap.val();
+    const tTemp = document.getElementById("tTemp");
+    const tHum = document.getElementById("tHum");
+
+    if (!datos) {
+      document.getElementById("ambienteHora").textContent = "sin lecturas aun";
+      return;
+    }
+
+    tTemp.classList.remove("sindato");
+    tHum.classList.remove("sindato");
+    tTemp.querySelector(".val").innerHTML = datos.temperatura.toFixed(1) + " <small>°C</small>";
+    tHum.querySelector(".val").innerHTML = datos.humedad.toFixed(1) + " <small>%HR</small>";
+    document.getElementById("ambienteHora").textContent = horaLegible(datos.timestamp);
+  });
+
+  onValue(ref(db, "estado_actual/modo"), (snap) => {
+    const modo = snap.val();
+    const tModo = document.getElementById("tModo");
+    if (modo === null || modo === undefined) {
+      document.getElementById("modoHora").textContent = "sin dato aun";
+      return;
+    }
+    tModo.classList.remove("sindato");
+    tModo.querySelector(".val").textContent = modo;
+    document.getElementById("modoHora").textContent = "actualizado";
+  });
+</script>
+</body></html>
