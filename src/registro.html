@@ -62,7 +62,7 @@ input:focus{outline:2px solid var(--signal);outline-offset:1px}
     <div><h1>Crear cuenta</h1><small>Piloto · un cuidador, un equipo</small></div>
   </div>
 
-  <p class="disclaimer">Esto crea tu acceso al dashboard en vivo. Si ya tenés tu equipo ESP32 con su dirección MAC, ingresala para vincularlo a tu cuenta; si no la tenés todavía, dejala en blanco y la agregamos después.</p>
+  <p class="disclaimer">Esto crea tu acceso al dashboard en vivo. El equipo se vincula solo cuando lo enciendas: conectate a su punto de acceso WiFi ("C1001-Setup") y usá este mismo correo al configurar tu red.</p>
 
   <div class="error-box" id="errorBox" role="alert"></div>
 
@@ -77,9 +77,6 @@ input:focus{outline:2px solid var(--signal);outline-offset:1px}
   </label>
   <label>Confirmar contraseña
     <input type="password" id="claveConfirmar" name="new-password-confirm" required autocomplete="new-password" placeholder="Repetí la contraseña">
-  </label>
-  <label>MAC del ESP32 <span class="hint">(opcional por ahora, formato AA:BB:CC:DD:EE:FF)</span>
-    <input type="text" id="mac" name="mac" autocomplete="off" placeholder="AA:BB:CC:DD:EE:FF">
   </label>
 
   <button type="submit" class="btn-primary" id="btnRegistrar">Crear cuenta</button>
@@ -111,8 +108,6 @@ input:focus{outline:2px solid var(--signal);outline-offset:1px}
   const errorBox = document.getElementById("errorBox");
   const btnRegistrar = document.getElementById("btnRegistrar");
 
-  const REGEX_MAC = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/;
-
   function mostrarError(mensaje) {
     errorBox.textContent = mensaje;
     errorBox.classList.add("show");
@@ -139,20 +134,10 @@ input:focus{outline:2px solid var(--signal);outline-offset:1px}
     const correo = document.getElementById("correo").value.trim();
     const clave = document.getElementById("clave").value;
     const claveConfirmar = document.getElementById("claveConfirmar").value;
-    const macCrudo = document.getElementById("mac").value.trim();
 
     if (clave !== claveConfirmar) {
       mostrarError("Las contrasenas no coinciden.");
       return;
-    }
-
-    let macNormalizada = null;
-    if (macCrudo) {
-      if (!REGEX_MAC.test(macCrudo)) {
-        mostrarError("La MAC no tiene el formato esperado (AA:BB:CC:DD:EE:FF).");
-        return;
-      }
-      macNormalizada = macCrudo.toUpperCase();
     }
 
     btnRegistrar.disabled = true;
@@ -164,29 +149,18 @@ input:focus{outline:2px solid var(--signal);outline-offset:1px}
 
       // Perfil del usuario final -- ver esquema /usuarios/{uid} propuesto
       // en CONTEXTO_FIREBASE_WEBHOST_v2.md, seccion 5.
+      // El equipo NO se vincula aqui: el propio ESP32 lo hace solo, usando
+      // este mismo correo, cuando lo enciendan y lo aprovisionen con
+      // WiFiManager (ver diagramas/mapa_flujo_datos.md, seccion 3).
       const datosUsuario = {
         nombre: nombre,
         correo: correo,
         fecha_registro: { ".sv": "timestamp" },
         limite_dispositivos: 1,
-        dispositivos_asignados: macNormalizada ? { [macNormalizada]: true } : {}
+        dispositivos_asignados: {}
       };
 
       await set(ref(db, "usuarios/" + uid), datosUsuario);
-
-      if (macNormalizada) {
-        // Autoasignacion de la MAC al propietario. Hoy funciona porque las
-        // reglas de la RTDB siguen en "modo de prueba" (abiertas). Cuando se
-        // escriban reglas reales (proximo paso pendiente), esta escritura
-        // debe seguir permitida solo si el nodo /dispositivos/{mac}/meta
-        // todavia no tiene propietario, para que nadie reclame el equipo
-        // de otra persona.
-        await set(ref(db, "dispositivos/" + macNormalizada + "/meta"), {
-          propietario: uid,
-          alias: nombre,
-          fecha_registro: { ".sv": "timestamp" }
-        });
-      }
 
       window.location.href = "dashboard.html";
     } catch (error) {
