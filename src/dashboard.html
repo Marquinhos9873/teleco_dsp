@@ -82,6 +82,23 @@ details.tabla summary{cursor:pointer;font-size:.82rem;color:var(--signal)}
 table.datos{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
 table.datos th,table.datos td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
 table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text-transform:uppercase}
+
+/* Banner para habilitar sonido (los navegadores bloquean audio sin un clic previo) */
+.banner-sonido{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--signal-soft);border:1px solid var(--signal);border-radius:12px;padding:10px 14px;font-size:.85rem}
+.banner-sonido button{font:inherit;font-weight:700;font-size:.82rem;border:none;border-radius:8px;padding:7px 14px;background:var(--signal);color:#fff;cursor:pointer}
+
+/* Alerta modal (caida / valor fuera de rango) */
+.alerta-overlay{position:fixed;inset:0;background:rgba(10,15,17,.55);display:grid;place-items:center;padding:16px;z-index:50}
+.alerta-modal{background:var(--surface);border-radius:var(--r);padding:26px;max-width:380px;width:100%;display:grid;gap:12px;text-align:center;border:3px solid var(--warn);box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.alerta-modal.crit{border-color:var(--crit)}
+.alerta-modal.crit{animation:latido 1s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.alerta-modal.crit{animation:none}}
+@keyframes latido{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+.alerta-icono{width:46px;height:46px;border-radius:50%;background:var(--warn-soft,var(--signal-soft));display:grid;place-items:center;margin:0 auto;color:var(--warn)}
+.alerta-modal.crit .alerta-icono{background:var(--crit-soft);color:var(--crit)}
+.alerta-modal h2{font-size:1.15rem}
+.alerta-modal p{font-size:.9rem;color:var(--muted)}
+.btn-alerta-ok{font:inherit;font-weight:700;font-size:.9rem;border:none;border-radius:10px;padding:10px 20px;background:var(--ink);color:#fff;cursor:pointer;justify-self:center}
 </style>
 </head><body>
 
@@ -96,7 +113,24 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
   </div>
 </header>
 
+<div class="alerta-overlay" id="alertaOverlay" role="alertdialog" aria-modal="true" aria-labelledby="alertaTitulo" hidden>
+  <div class="alerta-modal" id="alertaModal">
+    <div class="alerta-icono" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.6 17a1.8 1.8 0 0 0 1.55 2.7h15.7A1.8 1.8 0 0 0 21.4 17L13.7 3.9a1.8 1.8 0 0 0-3.1 0z"/></svg>
+    </div>
+    <h2 id="alertaTitulo"></h2>
+    <p id="alertaTexto"></p>
+    <span class="eyebrow" id="alertaHora"></span>
+    <button type="button" class="btn-alerta-ok" id="btnAlertaOk">Entendido</button>
+  </div>
+</div>
+
 <div class="wrap">
+  <div class="banner-sonido" id="bannerSonido">
+    <span>🔔 Activá el sonido para recibir alertas si el radar detecta algo fuera de lo normal.</span>
+    <button type="button" id="btnHabilitarSonido">Activar alertas sonoras</button>
+  </div>
+
   <p class="disclaimer">Esta vista muestra datos reales publicados por el dispositivo. Si tu equipo todavía no está encendido y vinculado, vas a ver un aviso para configurarlo.</p>
 
   <div class="card" id="cardSinEquipo" hidden>
@@ -192,6 +226,77 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
   const correoActualSpan = document.getElementById("correoActual");
 
   let miMac = null;  // MAC del equipo del usuario logueado, una vez encontrado
+
+  // ===================== Alertas: sonido + popup =====================
+  // Los navegadores bloquean audio hasta que haya un gesto del usuario en la
+  // pagina (por eso el banner). Una vez habilitado, se guarda en memoria para
+  // el resto de la sesion -- no hay forma de "preactivarlo" antes de eso.
+  const bannerSonido = document.getElementById("bannerSonido");
+  const btnHabilitarSonido = document.getElementById("btnHabilitarSonido");
+  const alertaOverlay = document.getElementById("alertaOverlay");
+  const alertaModal = document.getElementById("alertaModal");
+  const alertaTitulo = document.getElementById("alertaTitulo");
+  const alertaTexto = document.getElementById("alertaTexto");
+  const alertaHora = document.getElementById("alertaHora");
+  const btnAlertaOk = document.getElementById("btnAlertaOk");
+
+  let audioCtx = null;
+  let sonidoHabilitado = false;
+
+  function reproducirBeep(repeticiones, frecuencia) {
+    if (!sonidoHabilitado || !audioCtx) return;
+    let t = audioCtx.currentTime;
+    for (let i = 0; i < repeticiones; i++) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.frequency.value = frecuencia;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc.start(t);
+      osc.stop(t + 0.24);
+      t += 0.34;
+    }
+  }
+
+  btnHabilitarSonido.addEventListener("click", () => {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    sonidoHabilitado = true;
+    bannerSonido.hidden = true;
+    reproducirBeep(1, 880);  // confirmacion de que el sonido quedo activo
+  });
+
+  // nivel: "crit" (caida) o "warn" (valor fuera de rango). Si ya hay una
+  // alerta abierta, la nueva la reemplaza (no se apilan popups).
+  function mostrarAlerta(nivel, titulo, texto) {
+    alertaModal.classList.toggle("crit", nivel === "crit");
+    alertaTitulo.textContent = titulo;
+    alertaTexto.textContent = texto;
+    alertaHora.textContent = new Date().toLocaleTimeString("es-PE");
+    alertaOverlay.hidden = false;
+    btnAlertaOk.focus();
+    reproducirBeep(nivel === "crit" ? 3 : 1, nivel === "crit" ? 920 : 660);
+  }
+
+  function cerrarAlerta() {
+    alertaOverlay.hidden = true;
+  }
+
+  btnAlertaOk.addEventListener("click", cerrarAlerta);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !alertaOverlay.hidden) cerrarAlerta();
+  });
+
+  // Umbrales de ejemplo, no son un rango clinico validado -- ver disclaimer
+  // general del proyecto (no es un dispositivo medico). Ajustables a futuro.
+  const UMBRAL_RESP_MIN = 8, UMBRAL_RESP_MAX = 30;
+  const UMBRAL_FC_MIN = 40, UMBRAL_FC_MAX = 140;
+
+  let estabaEnCaida = false;
+  let respFueraDeRango = false;
+  let fcFueraDeRango = false;
 
   // Gate de sesion: sin login valido, no tiene sentido iniciar los listeners
   // de abajo. Esto es solo una barrera de interfaz -- las reglas de la RTDB
@@ -353,6 +458,20 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
       document.getElementById("tFc").classList.remove("sindato");
       document.getElementById("tResp").querySelector(".val").innerHTML = datos.respiracion + " <small>resp/min</small>";
       document.getElementById("tFc").querySelector(".val").innerHTML = datos.frecuencia_cardiaca + " <small>lat/min</small>";
+
+      // Alertas por valor fuera de rango -- disparan solo al cruzar el
+      // umbral (edge-triggered), no en cada lectura mientras se mantiene.
+      const respFuera = datos.respiracion < UMBRAL_RESP_MIN || datos.respiracion > UMBRAL_RESP_MAX;
+      const fcFuera = datos.frecuencia_cardiaca < UMBRAL_FC_MIN || datos.frecuencia_cardiaca > UMBRAL_FC_MAX;
+
+      if (respFuera && !respFueraDeRango) {
+        mostrarAlerta("warn", "Respiración fuera de rango", "Se registró una respiración de " + datos.respiracion + " resp/min. Esto es un umbral de referencia, no un diagnóstico.");
+      }
+      if (fcFuera && !fcFueraDeRango) {
+        mostrarAlerta("warn", "Frecuencia cardíaca fuera de rango", "Se registró " + datos.frecuencia_cardiaca + " lat/min. Esto es un umbral de referencia, no un diagnóstico.");
+      }
+      respFueraDeRango = respFuera;
+      fcFueraDeRango = fcFuera;
     } else {
       const tCaida = document.getElementById("tCaida");
       const tPermanencia = document.getElementById("tPermanencia");
@@ -361,6 +480,12 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
       tCaida.classList.toggle("crit", datos.estado_caida === 1);
       tCaida.querySelector(".val").textContent = datos.estado_caida === 1 ? "CAÍDA" : "Sin caída";
       tPermanencia.querySelector(".val").textContent = datos.permanencia_estatica === 1 ? "Presente" : "Sin permanencia";
+
+      const cayendoAhora = datos.estado_caida === 1;
+      if (cayendoAhora && !estabaEnCaida) {
+        mostrarAlerta("crit", "¡Posible caída detectada!", "El radar detectó una caída. Revisá a tu familiar apenas puedas.");
+      }
+      estabaEnCaida = cayendoAhora;
     }
   }
 
