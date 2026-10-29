@@ -10,11 +10,11 @@
 <meta property="og:image:height" content="630">
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>C1001 · Gemelo digital | Proyecto universitario</title>
-<meta name="description" content="Simulador académico del sistema C1001 de asistencia no invasiva: gemelo 3D, escenarios, diagrama eléctrico y lógica de ESP32 y Blynk.">
-<meta property="og:site_name" content="C1001 · Gemelo digital">
-<meta property="og:title" content="C1001 · Gemelo digital | Proyecto universitario">
-<meta property="og:description" content="Exploración interactiva de un sistema de asistencia no invasiva con radar C1001, ESP32 y Blynk. Proyecto universitario con datos simulados.">
+<title>C1001 · Cuidado sin cámaras</title>
+<meta name="description" content="C1001 detecta presencia, caídas y calidad del sueño con radar, nunca con cámara. Mirá el estado de tu familiar en vivo desde cualquier navegador.">
+<meta property="og:site_name" content="C1001">
+<meta property="og:title" content="C1001 · Cuidado sin cámaras">
+<meta property="og:description" content="Monitoreo no invasivo con radar para cuidadores: presencia, caídas y sueño, sin cámaras ni pulseras.">
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#0A7470">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
@@ -262,12 +262,100 @@ body{margin:0}
 footer{max-width:1368px;margin:0 auto;padding:18px 16px 28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.78rem;color:var(--muted)}
 .tabs button,.btn,.seg button{min-height:36px}
 @media(max-width:720px){.academic-intro{align-items:start;flex-direction:column;gap:14px}.topbar{position:relative}.tabs{width:100%}.document-label{white-space:normal}}
+
+/* ===== Portada de producto: nav mínimo, hero, pasos, confianza ===== */
+.site-nav{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.site-nav .brand-mini{display:flex;align-items:center;gap:9px;font-family:var(--f-display);font-weight:800;font-stretch:85%;font-size:1.02rem}
+.site-nav .brand-mini .dot{width:10px;height:10px;border-radius:50%;background:var(--signal);box-shadow:0 0 0 4px var(--signal-soft);flex:none}
+
+.hero{max-width:1368px;margin:0 auto;padding:clamp(40px,8vw,88px) 16px 52px;position:relative;overflow:hidden}
+.hero-pulse{position:absolute;top:-80px;right:-60px;width:460px;height:460px;pointer-events:none}
+.hero-pulse circle{fill:none;stroke:var(--signal);stroke-width:1.1}
+.hero-pulse .r1,.hero-pulse .r2,.hero-pulse .r3{animation:pulseRing 4.4s ease-out infinite}
+.hero-pulse .r2{animation-delay:1.47s}
+.hero-pulse .r3{animation-delay:2.93s}
+@keyframes pulseRing{0%{r:18;stroke-opacity:.85}100%{r:220;stroke-opacity:0}}
+@media(prefers-reduced-motion:reduce){.hero-pulse .r1,.hero-pulse .r2,.hero-pulse .r3{animation:none;r:140;stroke-opacity:.18}}
+.hero-inner{position:relative;max-width:46ch}
+.hero-title{font-family:var(--f-display);font-stretch:85%;font-weight:800;font-size:clamp(2rem,4.6vw,3.25rem);line-height:1.05;letter-spacing:-.02em;margin:12px 0 18px}
+.hero-sub{font-size:1.05rem;color:var(--muted);max-width:50ch;margin-bottom:26px}
+.hero-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.btn-cta{font:inherit;font-weight:700;font-size:.95rem;border-radius:10px;padding:13px 22px;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:1px solid transparent}
+.btn-cta.primary{background:var(--signal);color:#fff}
+.btn-cta.primary:hover{background:var(--ink)}
+.btn-cta.secondary{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn-cta.secondary:hover{border-color:var(--signal);color:var(--signal)}
+.hero-scroll{font-size:.82rem;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.hero-scroll:hover{color:var(--signal)}
+
+.steps{max-width:1368px;margin:0 auto;padding:8px 16px 48px}
+.steps h2{font-size:clamp(1.2rem,2.4vw,1.55rem);margin-bottom:18px;max-width:30ch}
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:8px;align-content:start}
+.step .num{font-family:var(--f-mono);font-size:.78rem;color:var(--signal)}
+.step h3{font-size:1.02rem}
+.step p{font-size:.88rem;color:var(--muted)}
+@media(max-width:860px){.steps-grid{grid-template-columns:1fr}}
+
+.trust{max-width:1368px;margin:0 auto;padding:8px 16px 56px;display:grid;grid-template-columns:1.05fr 1fr;gap:30px;align-items:start}
+.trust h2{font-size:clamp(1.3rem,2.6vw,1.7rem);margin-bottom:10px;max-width:22ch}
+.trust p{color:var(--muted);max-width:50ch}
+.trust-badges{display:grid;gap:10px}
+.trust-badge{display:flex;gap:11px;align-items:flex-start;background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.trust-badge svg{flex:none;width:19px;height:19px;color:var(--signal);margin-top:1px}
+.trust-badge b{display:block;font-size:.88rem}
+.trust-badge span{font-size:.8rem;color:var(--muted)}
+@media(max-width:860px){.trust{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <a class="skip-link" href="#contenido">Saltar al contenido</a>
 
-<header class="topbar">
+<header class="site-nav">
+  <div class="brand-mini"><span class="dot" aria-hidden="true"></span> C1001</div>
+  <a class="btn-cta secondary" href="login.html" style="padding:9px 16px;font-size:.88rem">Ingresar</a>
+</header>
+
+<section class="hero">
+  <svg class="hero-pulse" viewBox="0 0 400 400" aria-hidden="true">
+    <circle class="r1" cx="320" cy="90" r="18"/>
+    <circle class="r2" cx="320" cy="90" r="18"/>
+    <circle class="r3" cx="320" cy="90" r="18"/>
+  </svg>
+  <div class="hero-inner">
+    <span class="eyebrow">Monitoreo con radar, no con cámara</span>
+    <h1 class="hero-title">Sabé cómo está tu familiar, sin cámaras ni pulseras.</h1>
+    <p class="hero-sub">El C1001 detecta presencia, caídas y calidad del sueño con ondas de radar. Vos revisás el estado en vivo desde cualquier navegador, estés donde estés.</p>
+    <div class="hero-ctas">
+      <a class="btn-cta primary" href="registro.html">Crear cuenta</a>
+      <a class="btn-cta secondary" href="login.html">Ya tengo cuenta</a>
+    </div>
+    <a class="hero-scroll" href="#gemelo-digital">Ver cómo funciona por dentro ↓</a>
+  </div>
+</section>
+
+<section class="steps" aria-labelledby="como-funciona-h">
+  <h2 id="como-funciona-h">Tres pasos, sin que tu familiar tenga que hacer nada</h2>
+  <div class="steps-grid">
+    <div class="step"><span class="num">01</span><h3>El radar detecta</h3><p>El C1001 mide presencia, movimiento, respiración y pulso con ondas — no graba imagen ni sonido.</p></div>
+    <div class="step"><span class="num">02</span><h3>El equipo envía</h3><p>Un ESP32 manda esas lecturas a una base de datos en vivo cada pocos segundos, por su propia red WiFi.</p></div>
+    <div class="step"><span class="num">03</span><h3>Vos lo ves</h3><p>Entrás con tu cuenta y mirás el estado actual desde el celular o la computadora.</p></div>
+  </div>
+</section>
+
+<section class="trust">
+  <div>
+    <h2>No es una cámara.</h2>
+    <p>El C1001 funciona con ondas de radar de muy baja potencia, como un sensor de movimiento. No ve ni grava: solo detecta que hay una persona y cómo se está moviendo.</p>
+  </div>
+  <div class="trust-badges">
+    <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a5 5 0 0 1 5 5v10l-5 3-5-3V7a5 5 0 0 1 5-5z"/><path d="M9 11l2 2 4-4"/></svg><div><b>Sin cámara ni micrófono</b><span>El radar no capta imagen ni audio, en ningún modo de uso.</span></div></div>
+    <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><div><b>Vos decidís quién lo ve</b><span>El dashboard pide tu cuenta; nadie accede a los datos sin ella.</span></div></div>
+    <div class="trust-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19V5a2 2 0 0 1 2-2h10l4 4v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 12h8M8 16h5"/></svg><div><b>Pensado para leerse fácil</b><span>Usamos una tipografía de alta legibilidad en toda la interfaz.</span></div></div>
+  </div>
+</section>
+
+<header class="topbar" id="gemelo-digital">
   <div class="tb-row">
     <div class="brand">
       <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></div>
@@ -287,7 +375,6 @@ footer{max-width:1368px;margin:0 auto;padding:18px 16px 28px;border-top:1px soli
         <button type="button" id="mFall" data-mode="FALL" aria-pressed="true"><b>FALL</b></button>
         <button type="button" id="mSleep" data-mode="SLEEP" aria-pressed="false"><b>SLEEP</b></button>
       </div>
-      <a class="btn" href="login.html">Ingresar a mis datos</a>
     </div>
   </div>
   <div class="statusline">
@@ -300,8 +387,8 @@ footer{max-width:1368px;margin:0 auto;padding:18px 16px 28px;border-top:1px soli
 
 <main class="wrap" id="contenido" tabindex="-1">
   <div class="academic-intro">
-    <div><span class="eyebrow">Proyecto universitario · Simulación interactiva</span><h2>Asistencia no invasiva.<br>Un sistema, cinco perspectivas.</h2><p>Exploración del radar C1001 y su integración con ESP32 y Blynk: desde los componentes y el recorrido del dato hasta la lógica de detección de caídas y monitoreo del sueño.</p></div>
-    <span class="document-label">C1001 / GEMELO DIGITAL<br>Entorno de demostración académica</span>
+    <div><span class="eyebrow">Así funciona por dentro</span><h2>El gemelo digital.<br>Un sistema, cinco perspectivas.</h2><p>Explorá el radar C1001 y su integración con ESP32 y Blynk: desde los componentes y el recorrido del dato hasta la lógica de detección de caídas y monitoreo del sueño.</p></div>
+    <span class="document-label">C1001 / GEMELO DIGITAL<br>Simulación interactiva en el navegador</span>
   </div>
   <noscript><p class="disclaimer">Activa JavaScript para utilizar el simulador, consultar los componentes y cambiar entre las vistas.</p></noscript>
   <p class="disclaimer">Simulación cualitativa en el navegador: no usa el dispositivo real, los valores son sintéticos y no es un dispositivo médico. La distribución interna de la carcasa es provisional.</p>
@@ -667,7 +754,11 @@ footer{max-width:1368px;margin:0 auto;padding:18px 16px 28px;border-top:1px soli
     </div>
   </section>
 </main>
-<footer><span>C1001 · Gemelo digital · Proyecto universitario</span><span>Simulación en navegador · Sin conexión a hardware real</span></footer>
+<footer>
+  <span>C1001 · Cuidado sin cámaras</span>
+  <span class="hero-ctas" style="margin:0"><a class="btn-cta secondary" style="padding:7px 14px;font-size:.82rem" href="login.html">Ingresar</a><a class="btn-cta primary" style="padding:7px 14px;font-size:.82rem" href="registro.html">Crear cuenta</a></span>
+  <span>Simulación del gemelo digital en navegador · Sin conexión a hardware real</span>
+</footer>
 
 <script>
 (function(){

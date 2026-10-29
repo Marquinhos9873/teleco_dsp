@@ -1,10 +1,11 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!doctype html><html lang="es"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>C1001 · Crear cuenta</title>
+<meta name="description" content="Creá tu cuenta para ver el estado de tu familiar en vivo con el C1001.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Mismos tokens visuales que login.html / dashboard.html */
+/* Mismos tokens visuales que index.html / login.html / dashboard.html */
 :root{
   --bg:#EDF2F2; --surface:#FFFFFF; --sunk:#F5F8F8; --ink:#13232A; --muted:#566A72; --line:#D2DCDE;
   --signal:#0A7470; --signal-soft:rgba(10,116,112,.12);
@@ -28,60 +29,112 @@
   --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15)}
 
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;min-height:100vh;display:grid;place-items:center;padding:16px}
-h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
-.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
-.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;min-height:100vh}
+h1,h2,h3{font-family:var(--f-display);font-stretch:85%;line-height:1.08;margin:0}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.06em;color:var(--signal)}
 .muted{color:var(--muted)}
+a{color:var(--signal)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:grid;gap:14px;max-width:420px;width:100%}
-.brand{display:flex;gap:10px;align-items:center}
-.logo{width:34px;height:34px;border-radius:10px;background:var(--signal);display:grid;place-items:center;flex:none}
-.logo svg{width:22px;height:22px}
-.brand small{display:block;font-size:.75rem;color:var(--muted)}
+.split{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr}
+@media(max-width:860px){.split{grid-template-columns:1fr}}
 
-label{display:grid;gap:4px;font-size:.85rem}
-label .hint{font-size:.74rem;color:var(--muted);font-weight:400}
-input{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--sunk);color:var(--ink)}
+/* Panel de marca */
+.brand-panel{position:relative;overflow:hidden;background:var(--ink);color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:clamp(28px,5vw,56px)}
+@media (prefers-color-scheme:dark){.brand-panel{background:#0A1013}}
+.brand-pulse{position:absolute;top:-70px;left:-70px;width:420px;height:420px;pointer-events:none;opacity:.5}
+.brand-pulse circle{fill:none;stroke:var(--signal);stroke-width:1.1}
+.brand-pulse .r1,.brand-pulse .r2,.brand-pulse .r3{animation:pulseRing 4.4s ease-out infinite}
+.brand-pulse .r2{animation-delay:1.47s}
+.brand-pulse .r3{animation-delay:2.93s}
+@keyframes pulseRing{0%{r:18;stroke-opacity:.85}100%{r:220;stroke-opacity:0}}
+@media(prefers-reduced-motion:reduce){.brand-pulse .r1,.brand-pulse .r2,.brand-pulse .r3{animation:none;r:140;stroke-opacity:.14}}
+.brand-top{display:flex;align-items:center;gap:9px;font-weight:800;font-stretch:85%;position:relative}
+.brand-top .dot{width:10px;height:10px;border-radius:50%;background:var(--signal);box-shadow:0 0 0 4px rgba(255,255,255,.12);flex:none}
+.brand-copy{position:relative;max-width:36ch}
+.brand-copy h2{font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:12px;letter-spacing:-.01em}
+.brand-copy p{color:rgba(255,255,255,.72);font-size:.95rem}
+.brand-steps{position:relative;display:grid;gap:10px;margin-top:22px}
+.brand-step{display:flex;gap:10px;align-items:flex-start;font-size:.86rem;color:rgba(255,255,255,.82)}
+.brand-step .n{font-family:var(--f-mono);color:var(--signal);flex:none}
+.brand-foot{position:relative;font-size:.8rem;color:rgba(255,255,255,.6)}
+.brand-foot a{color:rgba(255,255,255,.88)}
+
+/* Panel de formulario */
+.form-panel{display:flex;align-items:center;justify-content:center;padding:clamp(28px,5vw,56px) 24px}
+.form-inner{width:100%;max-width:420px;display:grid;gap:16px}
+.form-head h1{font-size:clamp(1.5rem,3vw,1.9rem)}
+.form-head p{margin-top:6px;font-size:.88rem;color:var(--muted)}
+
+label{display:grid;gap:5px;font-size:.85rem}
+input{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--sunk);color:var(--ink)}
 input:focus{outline:2px solid var(--signal);outline-offset:1px}
 
-.btn-primary{font:inherit;font-weight:700;border:none;border-radius:10px;padding:10px 14px;background:var(--signal);color:#fff;cursor:pointer}
+.btn-primary{font:inherit;font-weight:700;font-size:.95rem;border:none;border-radius:10px;padding:12px 16px;background:var(--signal);color:#fff;cursor:pointer}
+.btn-primary:hover{background:var(--night)}
 .btn-primary:disabled{opacity:.6;cursor:default}
-.back-link{font-size:.82rem;color:var(--muted);text-decoration:none}
-.back-link:hover{color:var(--ink)}
+.form-links{display:flex;flex-direction:column;gap:6px}
+.form-links a{font-size:.85rem;color:var(--muted);text-decoration:none}
+.form-links a:hover{color:var(--signal)}
 
-.error-box{display:none;font-size:.82rem;color:var(--crit);background:var(--crit-soft);border-radius:10px;padding:8px 10px}
+.error-box{display:none;font-size:.82rem;color:var(--crit);background:var(--crit-soft);border-radius:10px;padding:9px 11px}
 .error-box.show{display:block}
-.disclaimer{font-size:.78rem;color:var(--muted)}
 </style>
 </head><body>
 
-<form class="card" id="registroForm" autocomplete="on" novalidate>
-  <div class="brand">
-    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></div>
-    <div><h1>Crear cuenta</h1><small>Piloto · un cuidador, un equipo</small></div>
-  </div>
+<div class="split">
+  <section class="brand-panel">
+    <svg class="brand-pulse" viewBox="0 0 400 400" aria-hidden="true">
+      <circle class="r1" cx="90" cy="90" r="18"/>
+      <circle class="r2" cx="90" cy="90" r="18"/>
+      <circle class="r3" cx="90" cy="90" r="18"/>
+    </svg>
+    <div class="brand-top"><span class="dot" aria-hidden="true"></span> C1001</div>
+    <div>
+      <div class="brand-copy">
+        <span class="eyebrow" style="color:rgba(255,255,255,.65)">Un cuidador, un equipo</span>
+        <h2>Tu cuenta primero. Tu equipo, cuando quieras.</h2>
+        <p>Creá tu cuenta ahora; el C1001 se vincula solo cuando lo enciendas, usando este mismo correo.</p>
+      </div>
+      <div class="brand-steps">
+        <div class="brand-step"><span class="n">01</span> Creá tu cuenta con tu correo.</div>
+        <div class="brand-step"><span class="n">02</span> Encendé el equipo y conectate a su red "C1001-Setup".</div>
+        <div class="brand-step"><span class="n">03</span> Dale tu WiFi y este mismo correo — se vincula solo.</div>
+      </div>
+    </div>
+    <div class="brand-foot"><a href="index.html">&larr; Ver el gemelo digital</a></div>
+  </section>
 
-  <p class="disclaimer">Esto crea tu acceso al dashboard en vivo. El equipo se vincula solo cuando lo enciendas: conectate a su punto de acceso WiFi ("C1001-Setup") y usá este mismo correo al configurar tu red.</p>
+  <section class="form-panel">
+    <form class="form-inner" id="registroForm" autocomplete="on" novalidate>
+      <div class="form-head">
+        <h1>Crear cuenta</h1>
+        <p>Esto crea tu acceso al dashboard en vivo. El equipo se vincula después, solo.</p>
+      </div>
 
-  <div class="error-box" id="errorBox" role="alert"></div>
+      <div class="error-box" id="errorBox" role="alert"></div>
 
-  <label>Nombre
-    <input type="text" id="nombre" name="name" required autocomplete="name" placeholder="Tu nombre">
-  </label>
-  <label>Correo
-    <input type="email" id="correo" name="email" required autocomplete="email" placeholder="tu@correo.com">
-  </label>
-  <label>Contraseña
-    <input type="password" id="clave" name="new-password" required autocomplete="new-password" minlength="6" placeholder="Mínimo 6 caracteres">
-  </label>
-  <label>Confirmar contraseña
-    <input type="password" id="claveConfirmar" name="new-password-confirm" required autocomplete="new-password" placeholder="Repetí la contraseña">
-  </label>
+      <label>Nombre
+        <input type="text" id="nombre" name="name" required autocomplete="name" placeholder="Tu nombre">
+      </label>
+      <label>Correo
+        <input type="email" id="correo" name="email" required autocomplete="email" placeholder="tu@correo.com">
+      </label>
+      <label>Contraseña
+        <input type="password" id="clave" name="new-password" required autocomplete="new-password" minlength="6" placeholder="Mínimo 6 caracteres">
+      </label>
+      <label>Confirmar contraseña
+        <input type="password" id="claveConfirmar" name="new-password-confirm" required autocomplete="new-password" placeholder="Repetí la contraseña">
+      </label>
 
-  <button type="submit" class="btn-primary" id="btnRegistrar">Crear cuenta</button>
-  <a class="back-link" href="login.html">&larr; Ya tengo cuenta, ingresar</a>
-</form>
+      <button type="submit" class="btn-primary" id="btnRegistrar">Crear cuenta</button>
+
+      <div class="form-links">
+        <a href="login.html">&larr; Ya tengo cuenta, ingresar</a>
+      </div>
+    </form>
+  </section>
+</div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
