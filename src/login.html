@@ -1,0 +1,152 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>C1001 · Ingresar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mismos tokens visuales que dashboard.html / C1001 Prueba Digital Twin, para que las tres vistas se vean como un solo sistema */
+:root{
+  --bg:#EDF2F2; --surface:#FFFFFF; --sunk:#F5F8F8; --ink:#13232A; --muted:#566A72; --line:#D2DCDE;
+  --signal:#0A7470; --signal-soft:rgba(10,116,112,.12);
+  --night:#4A4FB8; --night-soft:rgba(74,79,184,.12);
+  --ok:#2E7D4F; --warn:#A86A12; --crit:#C03A28; --crit-soft:rgba(192,58,40,.12);
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1518; --surface:#142026; --sunk:#101A1F; --ink:#E2EBED; --muted:#8FA2A9; --line:#26373E;
+  --signal:#45C2B8; --signal-soft:rgba(69,194,184,.14);
+  --night:#9196F2; --night-soft:rgba(145,150,242,.15);
+  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1518; --surface:#142026; --sunk:#101A1F; --ink:#E2EBED; --muted:#8FA2A9; --line:#26373E;
+  --signal:#45C2B8; --signal-soft:rgba(69,194,184,.14);
+  --night:#9196F2; --night-soft:rgba(145,150,242,.15);
+  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15)}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;min-height:100vh;display:grid;place-items:center;padding:16px}
+h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:grid;gap:16px;max-width:380px;width:100%}
+.brand{display:flex;gap:10px;align-items:center}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--signal);display:grid;place-items:center;flex:none}
+.logo svg{width:22px;height:22px}
+.brand small{display:block;font-size:.75rem;color:var(--muted)}
+
+label{display:grid;gap:4px;font-size:.85rem}
+input{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--sunk);color:var(--ink)}
+input:focus{outline:2px solid var(--signal);outline-offset:1px}
+
+.btn-primary{font:inherit;font-weight:700;border:none;border-radius:10px;padding:10px 14px;background:var(--signal);color:#fff;cursor:pointer}
+.btn-primary:disabled{opacity:.6;cursor:default}
+.back-link{font-size:.82rem;color:var(--muted);text-decoration:none}
+.back-link:hover{color:var(--ink)}
+
+.error-box{display:none;font-size:.82rem;color:var(--crit);background:var(--crit-soft);border-radius:10px;padding:8px 10px}
+.error-box.show{display:block}
+.disclaimer{font-size:.78rem;color:var(--muted)}
+</style>
+</head><body>
+
+<form class="card" id="loginForm" autocomplete="on">
+  <div class="brand">
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></div>
+    <div><h1>Ingresar</h1><small>Ver mis datos en vivo</small></div>
+  </div>
+
+  <p class="disclaimer">Acceso con tu cuenta. Si todavía no tenés una, podés crearla abajo.</p>
+
+  <div class="error-box" id="errorBox" role="alert"></div>
+
+  <label>Correo
+    <input type="email" id="correo" name="email" required autocomplete="email" placeholder="tu@correo.com">
+  </label>
+  <label>Contraseña
+    <input type="password" id="clave" name="password" required autocomplete="current-password" placeholder="••••••••">
+  </label>
+
+  <button type="submit" class="btn-primary" id="btnIngresar">Ingresar</button>
+  <a class="back-link" href="registro.html">¿No tenés cuenta? Creá una</a>
+  <a class="back-link" href="index.html">&larr; Volver al gemelo digital</a>
+</form>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth,
+    onAuthStateChanged,
+    signInWithEmailAndPassword
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  // Mismo proyecto que dashboard.html. El apiKey del SDK web no es secreto
+  // (ver CONTEXTO_FIREBASE_WEBHOST_v2.md, seccion 8); lo que protege los
+  // datos son las reglas de la base, no este valor.
+  const firebaseConfig = {
+    apiKey: "AIzaSyAoV1MZrzVjr9hF2kFWJC5rykMdQIaYKhs",
+    authDomain: "iot-monitoring-c1001-fb-test.firebaseapp.com",
+    databaseURL: "https://iot-monitoring-c1001-fb-test-default-rtdb.firebaseio.com",
+    projectId: "iot-monitoring-c1001-fb-test",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const form = document.getElementById("loginForm");
+  const errorBox = document.getElementById("errorBox");
+  const btnIngresar = document.getElementById("btnIngresar");
+
+  // Si ya hay sesion activa, no tiene sentido mostrar el formulario de nuevo.
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      window.location.href = "dashboard.html";
+    }
+  });
+
+  function mostrarError(mensaje) {
+    errorBox.textContent = mensaje;
+    errorBox.classList.add("show");
+  }
+
+  function traducirError(codigo) {
+    switch (codigo) {
+      case "auth/invalid-email":
+        return "El correo no tiene un formato valido.";
+      case "auth/invalid-credential":
+      case "auth/wrong-password":
+      case "auth/user-not-found":
+        return "Correo o contrasena incorrectos.";
+      case "auth/too-many-requests":
+        return "Demasiados intentos. Espera un momento antes de volver a intentar.";
+      default:
+        return "No se pudo iniciar sesion (" + codigo + ").";
+    }
+  }
+
+  form.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    errorBox.classList.remove("show");
+
+    const correo = document.getElementById("correo").value.trim();
+    const clave = document.getElementById("clave").value;
+
+    btnIngresar.disabled = true;
+    btnIngresar.textContent = "Ingresando...";
+
+    try {
+      await signInWithEmailAndPassword(auth, correo, clave);
+      // El redirect real ocurre en onAuthStateChanged, arriba.
+    } catch (error) {
+      mostrarError(traducirError(error.code));
+      btnIngresar.disabled = false;
+      btnIngresar.textContent = "Ingresar";
+    }
+  });
+</script>
+</body></html>

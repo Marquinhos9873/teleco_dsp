@@ -1,0 +1,199 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>C1001 · Crear cuenta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mismos tokens visuales que login.html / dashboard.html */
+:root{
+  --bg:#EDF2F2; --surface:#FFFFFF; --sunk:#F5F8F8; --ink:#13232A; --muted:#566A72; --line:#D2DCDE;
+  --signal:#0A7470; --signal-soft:rgba(10,116,112,.12);
+  --night:#4A4FB8; --night-soft:rgba(74,79,184,.12);
+  --ok:#2E7D4F; --warn:#A86A12; --crit:#C03A28; --crit-soft:rgba(192,58,40,.12);
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1518; --surface:#142026; --sunk:#101A1F; --ink:#E2EBED; --muted:#8FA2A9; --line:#26373E;
+  --signal:#45C2B8; --signal-soft:rgba(69,194,184,.14);
+  --night:#9196F2; --night-soft:rgba(145,150,242,.15);
+  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15);
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1518; --surface:#142026; --sunk:#101A1F; --ink:#E2EBED; --muted:#8FA2A9; --line:#26373E;
+  --signal:#45C2B8; --signal-soft:rgba(69,194,184,.14);
+  --night:#9196F2; --night-soft:rgba(145,150,242,.15);
+  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15)}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;min-height:100vh;display:grid;place-items:center;padding:16px}
+h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:grid;gap:14px;max-width:420px;width:100%}
+.brand{display:flex;gap:10px;align-items:center}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--signal);display:grid;place-items:center;flex:none}
+.logo svg{width:22px;height:22px}
+.brand small{display:block;font-size:.75rem;color:var(--muted)}
+
+label{display:grid;gap:4px;font-size:.85rem}
+label .hint{font-size:.74rem;color:var(--muted);font-weight:400}
+input{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--sunk);color:var(--ink)}
+input:focus{outline:2px solid var(--signal);outline-offset:1px}
+
+.btn-primary{font:inherit;font-weight:700;border:none;border-radius:10px;padding:10px 14px;background:var(--signal);color:#fff;cursor:pointer}
+.btn-primary:disabled{opacity:.6;cursor:default}
+.back-link{font-size:.82rem;color:var(--muted);text-decoration:none}
+.back-link:hover{color:var(--ink)}
+
+.error-box{display:none;font-size:.82rem;color:var(--crit);background:var(--crit-soft);border-radius:10px;padding:8px 10px}
+.error-box.show{display:block}
+.disclaimer{font-size:.78rem;color:var(--muted)}
+</style>
+</head><body>
+
+<form class="card" id="registroForm" autocomplete="on" novalidate>
+  <div class="brand">
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></div>
+    <div><h1>Crear cuenta</h1><small>Piloto · un cuidador, un equipo</small></div>
+  </div>
+
+  <p class="disclaimer">Esto crea tu acceso al dashboard en vivo. Si ya tenés tu equipo ESP32 con su dirección MAC, ingresala para vincularlo a tu cuenta; si no la tenés todavía, dejala en blanco y la agregamos después.</p>
+
+  <div class="error-box" id="errorBox" role="alert"></div>
+
+  <label>Nombre
+    <input type="text" id="nombre" name="name" required autocomplete="name" placeholder="Tu nombre">
+  </label>
+  <label>Correo
+    <input type="email" id="correo" name="email" required autocomplete="email" placeholder="tu@correo.com">
+  </label>
+  <label>Contraseña
+    <input type="password" id="clave" name="new-password" required autocomplete="new-password" minlength="6" placeholder="Mínimo 6 caracteres">
+  </label>
+  <label>Confirmar contraseña
+    <input type="password" id="claveConfirmar" name="new-password-confirm" required autocomplete="new-password" placeholder="Repetí la contraseña">
+  </label>
+  <label>MAC del ESP32 <span class="hint">(opcional por ahora, formato AA:BB:CC:DD:EE:FF)</span>
+    <input type="text" id="mac" name="mac" autocomplete="off" placeholder="AA:BB:CC:DD:EE:FF">
+  </label>
+
+  <button type="submit" class="btn-primary" id="btnRegistrar">Crear cuenta</button>
+  <a class="back-link" href="login.html">&larr; Ya tengo cuenta, ingresar</a>
+</form>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getAuth,
+    createUserWithEmailAndPassword
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  // Mismo proyecto que login.html / dashboard.html. El apiKey del SDK web
+  // no es secreto (ver CONTEXTO_FIREBASE_WEBHOST_v2.md, seccion 8).
+  const firebaseConfig = {
+    apiKey: "AIzaSyAoV1MZrzVjr9hF2kFWJC5rykMdQIaYKhs",
+    authDomain: "iot-monitoring-c1001-fb-test.firebaseapp.com",
+    databaseURL: "https://iot-monitoring-c1001-fb-test-default-rtdb.firebaseio.com",
+    projectId: "iot-monitoring-c1001-fb-test",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+
+  const form = document.getElementById("registroForm");
+  const errorBox = document.getElementById("errorBox");
+  const btnRegistrar = document.getElementById("btnRegistrar");
+
+  const REGEX_MAC = /^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$/;
+
+  function mostrarError(mensaje) {
+    errorBox.textContent = mensaje;
+    errorBox.classList.add("show");
+  }
+
+  function traducirError(codigo) {
+    switch (codigo) {
+      case "auth/email-already-in-use":
+        return "Ya existe una cuenta con ese correo. Proba ingresar en vez de registrarte.";
+      case "auth/invalid-email":
+        return "El correo no tiene un formato valido.";
+      case "auth/weak-password":
+        return "La contrasena debe tener al menos 6 caracteres.";
+      default:
+        return "No se pudo crear la cuenta (" + codigo + ").";
+    }
+  }
+
+  form.addEventListener("submit", async (evento) => {
+    evento.preventDefault();
+    errorBox.classList.remove("show");
+
+    const nombre = document.getElementById("nombre").value.trim();
+    const correo = document.getElementById("correo").value.trim();
+    const clave = document.getElementById("clave").value;
+    const claveConfirmar = document.getElementById("claveConfirmar").value;
+    const macCrudo = document.getElementById("mac").value.trim();
+
+    if (clave !== claveConfirmar) {
+      mostrarError("Las contrasenas no coinciden.");
+      return;
+    }
+
+    let macNormalizada = null;
+    if (macCrudo) {
+      if (!REGEX_MAC.test(macCrudo)) {
+        mostrarError("La MAC no tiene el formato esperado (AA:BB:CC:DD:EE:FF).");
+        return;
+      }
+      macNormalizada = macCrudo.toUpperCase();
+    }
+
+    btnRegistrar.disabled = true;
+    btnRegistrar.textContent = "Creando cuenta...";
+
+    try {
+      const credencial = await createUserWithEmailAndPassword(auth, correo, clave);
+      const uid = credencial.user.uid;
+
+      // Perfil del usuario final -- ver esquema /usuarios/{uid} propuesto
+      // en CONTEXTO_FIREBASE_WEBHOST_v2.md, seccion 5.
+      const datosUsuario = {
+        nombre: nombre,
+        correo: correo,
+        fecha_registro: { ".sv": "timestamp" },
+        limite_dispositivos: 1,
+        dispositivos_asignados: macNormalizada ? { [macNormalizada]: true } : {}
+      };
+
+      await set(ref(db, "usuarios/" + uid), datosUsuario);
+
+      if (macNormalizada) {
+        // Autoasignacion de la MAC al propietario. Hoy funciona porque las
+        // reglas de la RTDB siguen en "modo de prueba" (abiertas). Cuando se
+        // escriban reglas reales (proximo paso pendiente), esta escritura
+        // debe seguir permitida solo si el nodo /dispositivos/{mac}/meta
+        // todavia no tiene propietario, para que nadie reclame el equipo
+        // de otra persona.
+        await set(ref(db, "dispositivos/" + macNormalizada + "/meta"), {
+          propietario: uid,
+          alias: nombre,
+          fecha_registro: { ".sv": "timestamp" }
+        });
+      }
+
+      window.location.href = "dashboard.html";
+    } catch (error) {
+      mostrarError(traducirError(error.code));
+      btnRegistrar.disabled = false;
+      btnRegistrar.textContent = "Crear cuenta";
+    }
+  });
+</script>
+</body></html>
