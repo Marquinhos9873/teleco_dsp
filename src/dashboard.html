@@ -1,10 +1,11 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>C1001 · Visualización en vivo</title>
+<!doctype html><html lang="es"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>C1001 · Dashboard</title>
+<meta name="description" content="Estado en vivo e historico de tu equipo C1001.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Mismos tokens visuales que C1001_Prueba_Digital_Twin.html, para que las dos vistas se vean como un solo sistema */
+/* Mismos tokens visuales que index.html / login.html / registro.html */
 :root{
   --bg:#EDF2F2; --surface:#FFFFFF; --sunk:#F5F8F8; --ink:#13232A; --muted:#566A72; --line:#D2DCDE;
   --signal:#0A7470; --signal-soft:rgba(10,116,112,.12);
@@ -29,40 +30,65 @@
 
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
-h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
+h1,h2,h3{font-family:var(--f-display);font-stretch:85%;line-height:1.1;margin:0}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
-.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .muted{color:var(--muted)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 
 .topbar{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .brand{display:flex;gap:10px;align-items:center}
 .logo{width:34px;height:34px;border-radius:10px;background:var(--signal);display:grid;place-items:center;flex:none}
 .logo svg{width:22px;height:22px}
 .brand small{display:block;font-size:.75rem;color:var(--muted)}
-.conn{font-family:var(--f-mono);font-size:.78rem;display:flex;align-items:center;gap:6px}
+.conn{font-family:var(--f-mono);font-size:.78rem;display:flex;align-items:center;gap:10px}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--crit);display:inline-block}
 .dot.ok{background:var(--ok)}
 .btn-salir{font:inherit;font-size:.78rem;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:8px;padding:4px 9px;cursor:pointer}
 
-.wrap{max-width:900px;margin:0 auto;padding:18px 16px 40px;display:grid;gap:16px}
+.wrap{max-width:1180px;margin:0 auto;padding:18px 16px 40px;display:grid;gap:16px}
 .disclaimer{font-size:.8rem;color:var(--warn);background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px}
-.group-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px;align-content:start}
+.group-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}
 .tile{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--sunk);display:grid;gap:2px;transition:border-color .3s,background .3s}
 .tile .pin{font-family:var(--f-mono);font-size:.68rem;color:var(--muted)}
 .tile .val{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:1.5rem;font-variant-numeric:tabular-nums}
 .tile .val small{font-family:var(--f-body);font-size:.75rem;font-weight:400;color:var(--muted)}
 .tile.sindato{opacity:.5}
 .tile.sindato .val{color:var(--muted);font-size:1.1rem}
+.tile.crit{border-color:var(--crit);background:var(--crit-soft)}
 .footer-note{font-size:.78rem;color:var(--muted)}
+
+.layout{display:grid;grid-template-columns:1fr 1.2fr;gap:16px;align-items:start}
+@media(max-width:860px){.layout{grid-template-columns:1fr}}
+
+/* Control remoto de modo */
+.seg{display:flex;gap:6px;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:4px}
+.seg button{font:inherit;font-weight:700;font-size:.85rem;border:none;background:transparent;color:var(--muted);padding:7px 14px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--signal);color:#fff}
+.seg button:disabled{opacity:.55;cursor:default}
+.modo-estado{font-size:.78rem;color:var(--muted)}
+.modo-estado.pendiente{color:var(--warn)}
+
+/* Chart */
+.chart-wrap{overflow:hidden}
+.chart-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.8rem}
+.chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.chart-legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+svg.chart{width:100%;height:auto;display:block}
+.chart-empty{color:var(--muted);font-size:.85rem;padding:30px 0;text-align:center}
+details.tabla summary{cursor:pointer;font-size:.82rem;color:var(--signal)}
+table.datos{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
+table.datos th,table.datos td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line)}
+table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text-transform:uppercase}
 </style>
 </head><body>
 
 <header class="topbar">
   <div class="brand">
     <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></div>
-    <div><h1>C1001 · Visualización en vivo</h1><small>Datos reales desde Firebase Realtime Database</small></div>
+    <div><h1>C1001 · Dashboard</h1><small>Datos reales desde Firebase Realtime Database</small></div>
   </div>
   <div class="conn">
     <span class="dot" id="connDot"></span><span id="connTxt">Conectando…</span>
@@ -71,37 +97,77 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
 </header>
 
 <div class="wrap">
-  <p class="disclaimer">Esta vista muestra datos reales publicados por el dispositivo. Mientras no esté integrado el C1001 físico ni el SHT40/SGP40 reales, verás "— sin dato" o valores de prueba, no mediciones clínicas.</p>
+  <p class="disclaimer">Esta vista muestra datos reales publicados por el dispositivo. Si tu equipo todavía no está encendido y vinculado, vas a ver un aviso para configurarlo.</p>
 
-  <div class="card">
-    <div class="group-h"><h2>Ambiente</h2><span class="eyebrow" id="ambienteHora">sin lecturas aun</span></div>
-    <div class="tiles">
-      <div class="tile sindato" id="tTemp"><div class="pin">Temperatura</div><div class="val">—</div></div>
-      <div class="tile sindato" id="tHum"><div class="pin">Humedad relativa</div><div class="val">—</div></div>
-    </div>
+  <div class="card" id="cardSinEquipo" hidden>
+    <h2>Todavía no encontramos tu equipo</h2>
+    <p class="muted">Encendé el C1001, conectate desde tu celular al punto de acceso WiFi <b>"C1001-Setup"</b> y usá este mismo correo (<span id="correoActual" class="mono"></span>) al configurar tu red. En cuanto se conecte, esta página se actualiza sola.</p>
   </div>
 
-  <div class="card">
-    <div class="group-h"><h2>Modo del radar</h2><span class="eyebrow" id="modoHora">sin dato aun</span></div>
-    <div class="tiles">
-      <div class="tile sindato" id="tModo"><div class="pin">Modo aplicado</div><div class="val">—</div></div>
-    </div>
-    <p class="footer-note">Pendiente: el firmware todavia no publica este campo en <code>/estado_actual/modo</code>.</p>
-  </div>
+  <div id="panelEquipo" hidden>
+    <div class="layout">
 
-  <div class="card">
-    <div class="group-h"><h2>Radar · FALL / SLEEP</h2></div>
-    <div class="tiles">
-      <div class="tile sindato"><div class="pin">Presencia / caida</div><div class="val">— sin integrar</div></div>
-      <div class="tile sindato"><div class="pin">Respiracion / FC</div><div class="val">— sin integrar</div></div>
+      <!-- ===== Columna izquierda: numeros crudos + control de modo ===== -->
+      <div style="display:grid;gap:16px">
+        <div class="card">
+          <div class="group-h">
+            <h2>Modo del radar</h2>
+            <span class="eyebrow" id="modoEstadoTxt">sin dato aún</span>
+          </div>
+          <div class="seg" role="group" aria-label="Modo del radar">
+            <button type="button" id="btnModoFall" data-modo="FALL" aria-pressed="false">FALL</button>
+            <button type="button" id="btnModoSleep" data-modo="SLEEP" aria-pressed="false">SLEEP</button>
+          </div>
+          <p class="modo-estado" id="modoPendienteTxt"></p>
+        </div>
+
+        <div class="card">
+          <div class="group-h"><h2>Lecturas en vivo</h2><span class="eyebrow" id="radarHora">sin lecturas aún</span></div>
+          <div class="tiles" id="tilesComunes">
+            <div class="tile sindato" id="tPresencia"><div class="pin">Presencia</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tMovimiento"><div class="pin">Movimiento</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tRango"><div class="pin">Rango de movimiento</div><div class="val">—</div></div>
+          </div>
+          <div class="tiles" id="tilesSleep" hidden>
+            <div class="tile sindato" id="tResp"><div class="pin">Respiración</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tFc"><div class="pin">Frecuencia cardíaca</div><div class="val">—</div></div>
+          </div>
+          <div class="tiles" id="tilesFall" hidden>
+            <div class="tile sindato" id="tCaida"><div class="pin">Estado de caída</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tPermanencia"><div class="pin">Permanencia estática</div><div class="val">—</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="group-h"><h2>Ambiente</h2><span class="eyebrow" id="ambienteHora">sin lecturas aun</span></div>
+          <div class="tiles">
+            <div class="tile sindato" id="tTemp"><div class="pin">Temperatura</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tHum"><div class="pin">Humedad relativa</div><div class="val">—</div></div>
+          </div>
+          <p class="footer-note">Pendiente de integrar SHT40/SGP40 reales en el firmware.</p>
+        </div>
+      </div>
+
+      <!-- ===== Columna derecha: historico ===== -->
+      <div class="card chart-wrap">
+        <div class="group-h"><h2>Histórico reciente</h2><span class="eyebrow" id="historialCantidad">sin datos aún</span></div>
+        <div class="chart-legend" id="chartLegend"></div>
+        <div id="chartHost"><p class="chart-empty">Todavía no hay suficientes lecturas para graficar.</p></div>
+        <details class="tabla">
+          <summary>Ver como tabla</summary>
+          <table class="datos" id="tablaHistorial"><thead></thead><tbody></tbody></table>
+        </details>
+      </div>
+
     </div>
-    <p class="footer-note">Pendiente de implementar en el firmware (secciones 7-9 del plan). Estos campos no existen todavia en la base de datos.</p>
   </div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import {
+    getDatabase, ref, onValue, query, limitToLast, set
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   // Nota: no se importa Analytics a proposito -- no aporta nada a este
@@ -121,6 +187,11 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
   const connDot = document.getElementById("connDot");
   const connTxt = document.getElementById("connTxt");
   const btnSalir = document.getElementById("btnSalir");
+  const cardSinEquipo = document.getElementById("cardSinEquipo");
+  const panelEquipo = document.getElementById("panelEquipo");
+  const correoActualSpan = document.getElementById("correoActual");
+
+  let miMac = null;  // MAC del equipo del usuario logueado, una vez encontrado
 
   // Gate de sesion: sin login valido, no tiene sentido iniciar los listeners
   // de abajo. Esto es solo una barrera de interfaz -- las reglas de la RTDB
@@ -128,7 +199,10 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
   onAuthStateChanged(auth, (user) => {
     if (!user) {
       window.location.href = "login.html";
+      return;
     }
+    correoActualSpan.textContent = user.email;
+    buscarMiEquipo(user.email);
   });
 
   btnSalir.addEventListener("click", async () => {
@@ -136,8 +210,6 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
     window.location.href = "login.html";
   });
 
-  // Firebase expone esta ruta especial para saber si el navegador
-  // esta realmente conectado al servidor (no solo si el script cargo).
   onValue(ref(db, ".info/connected"), (snap) => {
     const conectado = snap.val() === true;
     connDot.classList.toggle("ok", conectado);
@@ -150,6 +222,35 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
     return "ultima lectura: " + d.toLocaleTimeString("es-PE");
   }
 
+  // ===================== Encontrar el equipo del usuario =====================
+  // Pendiente de escalar: esto escucha TODO el arbol /dispositivos para buscar
+  // cual tiene meta.propietario_correo === mi correo. Funciona bien para un
+  // pilote de pocos equipos; con muchos, conviene un indice inverso
+  // /usuarios/{uid}/dispositivos_asignados en vez de escanear todo.
+  function buscarMiEquipo(correo) {
+    onValue(ref(db, "dispositivos"), (snap) => {
+      const datos = snap.val() || {};
+      const macEncontrada = Object.keys(datos).find(
+        (mac) => datos[mac]?.meta?.propietario_correo === correo
+      );
+
+      if (!macEncontrada) {
+        cardSinEquipo.hidden = false;
+        panelEquipo.hidden = true;
+        return;
+      }
+
+      cardSinEquipo.hidden = true;
+      panelEquipo.hidden = false;
+
+      if (macEncontrada !== miMac) {
+        miMac = macEncontrada;
+        escucharEquipo(miMac);
+      }
+    });
+  }
+
+  // ===================== Ambiente (ruta global, sin cambios) =====================
   onValue(ref(db, "estado_actual/ambiente"), (snap) => {
     const datos = snap.val();
     const tTemp = document.getElementById("tTemp");
@@ -167,16 +268,199 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.1;margin:0}
     document.getElementById("ambienteHora").textContent = horaLegible(datos.timestamp);
   });
 
-  onValue(ref(db, "estado_actual/modo"), (snap) => {
-    const modo = snap.val();
-    const tModo = document.getElementById("tModo");
-    if (modo === null || modo === undefined) {
-      document.getElementById("modoHora").textContent = "sin dato aun";
+  // ===================== Control remoto de modo =====================
+  const btnModoFall = document.getElementById("btnModoFall");
+  const btnModoSleep = document.getElementById("btnModoSleep");
+  const modoEstadoTxt = document.getElementById("modoEstadoTxt");
+  const modoPendienteTxt = document.getElementById("modoPendienteTxt");
+
+  let modoConfirmado = null;
+  let modoSeleccionado = null;
+
+  function pintarBotonesModo() {
+    btnModoFall.setAttribute("aria-pressed", String(modoSeleccionado === "FALL"));
+    btnModoSleep.setAttribute("aria-pressed", String(modoSeleccionado === "SLEEP"));
+
+    if (modoSeleccionado && modoSeleccionado !== modoConfirmado) {
+      modoPendienteTxt.textContent = "Aplicando " + modoSeleccionado + "... el equipo tarda unos segundos en confirmar.";
+      modoPendienteTxt.classList.add("pendiente");
+    } else {
+      modoPendienteTxt.textContent = "";
+      modoPendienteTxt.classList.remove("pendiente");
+    }
+  }
+
+  function pedirModo(modo) {
+    if (!miMac) return;
+    modoSeleccionado = modo;
+    pintarBotonesModo();
+    set(ref(db, "dispositivos/" + miMac + "/comando/modo_solicitado"), modo);
+  }
+
+  btnModoFall.addEventListener("click", () => pedirModo("FALL"));
+  btnModoSleep.addEventListener("click", () => pedirModo("SLEEP"));
+
+  // ===================== Listeners del equipo encontrado =====================
+  function escucharEquipo(mac) {
+    onValue(ref(db, "dispositivos/" + mac + "/estado_actual/modo"), (snap) => {
+      const modo = snap.val();
+      modoConfirmado = modo;
+      if (!modoSeleccionado) modoSeleccionado = modo;
+      modoEstadoTxt.textContent = modo ? "modo " + modo + " confirmado" : "sin dato aún";
+      pintarBotonesModo();
+    });
+
+    onValue(ref(db, "dispositivos/" + mac + "/estado_actual/radar"), (snap) => {
+      pintarLecturaViva(snap.val());
+    });
+
+    onValue(query(ref(db, "dispositivos/" + mac + "/historial/radar"), limitToLast(20)), (snap) => {
+      const datos = snap.val() || {};
+      const filas = Object.values(datos).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      pintarHistorial(filas);
+    });
+  }
+
+  function pintarLecturaViva(datos) {
+    const radarHora = document.getElementById("radarHora");
+    const tilesSleep = document.getElementById("tilesSleep");
+    const tilesFall = document.getElementById("tilesFall");
+
+    if (!datos) {
+      radarHora.textContent = "sin lecturas aún";
       return;
     }
-    tModo.classList.remove("sindato");
-    tModo.querySelector(".val").textContent = modo;
-    document.getElementById("modoHora").textContent = "actualizado";
-  });
+
+    radarHora.textContent = horaLegible(datos.timestamp);
+
+    const tPresencia = document.getElementById("tPresencia");
+    const tMovimiento = document.getElementById("tMovimiento");
+    const tRango = document.getElementById("tRango");
+    tPresencia.classList.remove("sindato");
+    tMovimiento.classList.remove("sindato");
+    tRango.classList.remove("sindato");
+    tPresencia.querySelector(".val").textContent = datos.presencia === 1 ? "Presente" : "Nadie";
+    tMovimiento.querySelector(".val").textContent = ["Ninguno", "Quieto", "Activo"][datos.movimiento] ?? "—";
+    tRango.querySelector(".val").textContent = datos.movimiento_valor ?? "—";
+
+    const esSleep = datos.respiracion !== undefined;
+
+    tilesSleep.hidden = !esSleep;
+    tilesFall.hidden = esSleep;
+
+    if (esSleep) {
+      document.getElementById("tResp").classList.remove("sindato");
+      document.getElementById("tFc").classList.remove("sindato");
+      document.getElementById("tResp").querySelector(".val").innerHTML = datos.respiracion + " <small>resp/min</small>";
+      document.getElementById("tFc").querySelector(".val").innerHTML = datos.frecuencia_cardiaca + " <small>lat/min</small>";
+    } else {
+      const tCaida = document.getElementById("tCaida");
+      const tPermanencia = document.getElementById("tPermanencia");
+      tCaida.classList.remove("sindato");
+      tPermanencia.classList.remove("sindato");
+      tCaida.classList.toggle("crit", datos.estado_caida === 1);
+      tCaida.querySelector(".val").textContent = datos.estado_caida === 1 ? "CAÍDA" : "Sin caída";
+      tPermanencia.querySelector(".val").textContent = datos.permanencia_estatica === 1 ? "Presente" : "Sin permanencia";
+    }
+  }
+
+  // ===================== Historico: grafico SVG + tabla =====================
+  // Paleta: --signal (teal) y --night (violeta) son los dos colores de marca
+  // ya establecidos en todo el sitio, usados aqui como par categorico fijo
+  // (respiracion / frecuencia cardiaca). Con etiquetas directas + leyenda,
+  // ver nota de validacion de paleta en el commit de este archivo.
+  function colorVar(nombre) {
+    return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
+  }
+
+  function pintarHistorial(filas) {
+    const chartHost = document.getElementById("chartHost");
+    const chartLegend = document.getElementById("chartLegend");
+    const cantidadSpan = document.getElementById("historialCantidad");
+    const tabla = document.getElementById("tablaHistorial");
+
+    if (!filas.length) {
+      chartHost.innerHTML = '<p class="chart-empty">Todavía no hay suficientes lecturas para graficar.</p>';
+      chartLegend.innerHTML = "";
+      cantidadSpan.textContent = "sin datos aún";
+      tabla.querySelector("thead").innerHTML = "";
+      tabla.querySelector("tbody").innerHTML = "";
+      return;
+    }
+
+    cantidadSpan.textContent = filas.length + " lecturas recientes";
+
+    const esSleep = filas[filas.length - 1].respiracion !== undefined;
+    const W = 480, H = 220, PAD = 28;
+
+    if (esSleep) {
+      const colorResp = colorVar("--signal");
+      const colorFc = colorVar("--night");
+      const valsResp = filas.map((f) => f.respiracion);
+      const valsFc = filas.map((f) => f.frecuencia_cardiaca);
+      const min = Math.min(...valsResp, ...valsFc) - 2;
+      const max = Math.max(...valsResp, ...valsFc) + 2;
+
+      const x = (i) => PAD + (i * (W - 2 * PAD)) / Math.max(filas.length - 1, 1);
+      const y = (v) => H - PAD - ((v - min) * (H - 2 * PAD)) / Math.max(max - min, 1);
+
+      const linea = (vals, color) => {
+        const puntos = vals.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+        const circulos = vals
+          .map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="3.5" fill="${color}"><title>${v} — ${new Date(filas[i].timestamp).toLocaleTimeString("es-PE")}</title></circle>`)
+          .join("");
+        return `<polyline points="${puntos}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${circulos}`;
+      };
+
+      chartHost.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Respiracion y frecuencia cardiaca recientes">
+        <line x1="${PAD}" y1="${H - PAD}" x2="${W - PAD}" y2="${H - PAD}" stroke="var(--line)"/>
+        ${linea(valsResp, colorResp)}
+        ${linea(valsFc, colorFc)}
+      </svg>`;
+
+      chartLegend.innerHTML = `
+        <span><i style="background:${colorResp}"></i>Respiración (resp/min)</span>
+        <span><i style="background:${colorFc}"></i>Frecuencia cardíaca (lat/min)</span>`;
+
+      tabla.querySelector("thead").innerHTML = "<tr><th>Hora</th><th>Respiración</th><th>FC</th></tr>";
+      tabla.querySelector("tbody").innerHTML = filas
+        .map((f) => `<tr><td>${new Date(f.timestamp).toLocaleTimeString("es-PE")}</td><td>${f.respiracion}</td><td>${f.frecuencia_cardiaca}</td></tr>`)
+        .join("");
+    } else {
+      // Modo FALL: barras de magnitud de movimiento (sequential, un solo hue)
+      // + marcador critico cuando hubo caida (color de estado reservado).
+      const colorBarra = colorVar("--signal");
+      const colorCrit = colorVar("--crit");
+      const vals = filas.map((f) => f.movimiento_valor || 0);
+      const max = Math.max(...vals, 1);
+      const anchoBarra = (W - 2 * PAD) / filas.length;
+
+      const barras = filas
+        .map((f, i) => {
+          const h = ((f.movimiento_valor || 0) / max) * (H - 2 * PAD - 16);
+          const bx = PAD + i * anchoBarra;
+          const by = H - PAD - h;
+          const marcaCaida = f.estado_caida === 1
+            ? `<circle cx="${bx + anchoBarra / 2}" cy="${H - PAD - h - 10}" r="4" fill="${colorCrit}"><title>Caída detectada — ${new Date(f.timestamp).toLocaleTimeString("es-PE")}</title></circle>`
+            : "";
+          return `<rect x="${bx + 1}" y="${by}" width="${Math.max(anchoBarra - 2, 1)}" height="${h}" rx="2" fill="${colorBarra}"><title>${f.movimiento_valor ?? 0} — ${new Date(f.timestamp).toLocaleTimeString("es-PE")}</title></rect>${marcaCaida}`;
+        })
+        .join("");
+
+      chartHost.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Magnitud de movimiento y caidas recientes">
+        <line x1="${PAD}" y1="${H - PAD}" x2="${W - PAD}" y2="${H - PAD}" stroke="var(--line)"/>
+        ${barras}
+      </svg>`;
+
+      chartLegend.innerHTML = `
+        <span><i style="background:${colorBarra}"></i>Magnitud de movimiento</span>
+        <span><i style="background:${colorCrit}"></i>Caída detectada</span>`;
+
+      tabla.querySelector("thead").innerHTML = "<tr><th>Hora</th><th>Movimiento</th><th>Caída</th></tr>";
+      tabla.querySelector("tbody").innerHTML = filas
+        .map((f) => `<tr><td>${new Date(f.timestamp).toLocaleTimeString("es-PE")}</td><td>${f.movimiento_valor ?? "—"}</td><td>${f.estado_caida === 1 ? "Sí" : "No"}</td></tr>`)
+        .join("");
+    }
+  }
 </script>
 </body></html>
