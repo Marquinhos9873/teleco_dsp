@@ -1,0 +1,13 @@
+name = "teleco-dsp"
+compatibility_date = "2026-11-03"
+main = "worker/index.js"
+
+[assets]
+directory = "./src"
+binding = "ASSETS"
+not_found_handling = "404-page"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "teleco-dsp-db"
+database_id = "542182d9-c32f-4bcc-8295-e89b4136a79d"

@@ -71,6 +71,9 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:85%;line-height:1.1;margin:0}
 .seg button:disabled{opacity:.55;cursor:default}
 .modo-estado{font-size:.78rem;color:var(--muted)}
 .modo-estado.pendiente{color:var(--warn)}
+.modo-estado.tardando{color:var(--crit)}
+.barra-progreso{height:6px;border-radius:999px;background:var(--sunk);border:1px solid var(--line);overflow:hidden}
+.barra-progreso-fill{height:100%;width:0%;background:var(--warn);transition:width .4s linear}
 
 /* Chart */
 .chart-wrap{overflow:hidden}
@@ -154,6 +157,7 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
             <button type="button" id="btnModoSleep" data-modo="SLEEP" aria-pressed="false">SLEEP</button>
           </div>
           <p class="modo-estado" id="modoPendienteTxt"></p>
+          <div class="barra-progreso" id="barraProgreso" hidden><div class="barra-progreso-fill" id="barraProgresoFill"></div></div>
         </div>
 
         <div class="card">
@@ -383,21 +387,66 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
   let modoConfirmado = null;
   let modoSeleccionado = null;
 
+  // Estimado documentado (diagramas/mapa_flujo_datos.md + CONTEXTO_CLOUDFLARE_WEBHOST_v3.md,
+  // sección 8): 20 s de debounce del firmware + ~10 s de bloqueo interno de
+  // configWorkMode(), durante los cuales el equipo no publica nada. Es una
+  // estimación para la barra visual, no una garantía -- por eso la barra no
+  // llega a 100% sola, solo lo hace cuando estado_actual/modo confirma.
+  const DURACION_ESTIMADA_CAMBIO_MS = 30000;
+  const barraProgreso = document.getElementById("barraProgreso");
+  const barraProgresoFill = document.getElementById("barraProgresoFill");
+  let tiempoInicioPendiente = null;
+  let intervaloProgreso = null;
+
+  function actualizarProgresoPendiente() {
+    const transcurridoMs = Date.now() - tiempoInicioPendiente;
+    const segundos = Math.round(transcurridoMs / 1000);
+    const pct = Math.min(96, (transcurridoMs / DURACION_ESTIMADA_CAMBIO_MS) * 100);
+    barraProgresoFill.style.width = pct + "%";
+
+    const tardando = transcurridoMs > DURACION_ESTIMADA_CAMBIO_MS * 1.5;
+    modoPendienteTxt.classList.toggle("tardando", tardando);
+    modoPendienteTxt.textContent = tardando
+      ? "Aplicando " + modoSeleccionado + "... está tardando más de lo esperado (" + segundos + "s). Revisá que el equipo tenga WiFi."
+      : "Aplicando " + modoSeleccionado + "... " + segundos + "s (estimado ~30s; el equipo no publica nada en el último tramo, es normal).";
+  }
+
+  function iniciarProgresoPendiente() {
+    tiempoInicioPendiente = Date.now();
+    barraProgreso.hidden = false;
+    clearInterval(intervaloProgreso);
+    intervaloProgreso = setInterval(actualizarProgresoPendiente, 500);
+    actualizarProgresoPendiente();
+  }
+
+  function detenerProgresoPendiente() {
+    clearInterval(intervaloProgreso);
+    intervaloProgreso = null;
+    tiempoInicioPendiente = null;
+    barraProgreso.hidden = true;
+    barraProgresoFill.style.width = "0%";
+    modoPendienteTxt.classList.remove("tardando");
+  }
+
   function pintarBotonesModo() {
     btnModoFall.setAttribute("aria-pressed", String(modoSeleccionado === "FALL"));
     btnModoSleep.setAttribute("aria-pressed", String(modoSeleccionado === "SLEEP"));
 
-    if (modoSeleccionado && modoSeleccionado !== modoConfirmado) {
-      modoPendienteTxt.textContent = "Aplicando " + modoSeleccionado + "... el equipo tarda unos segundos en confirmar.";
-      modoPendienteTxt.classList.add("pendiente");
+    const pendiente = Boolean(modoSeleccionado) && modoSeleccionado !== modoConfirmado;
+    modoPendienteTxt.classList.toggle("pendiente", pendiente);
+    btnModoFall.disabled = pendiente;
+    btnModoSleep.disabled = pendiente;
+
+    if (pendiente) {
+      if (!tiempoInicioPendiente) iniciarProgresoPendiente();
     } else {
       modoPendienteTxt.textContent = "";
-      modoPendienteTxt.classList.remove("pendiente");
+      detenerProgresoPendiente();
     }
   }
 
   function pedirModo(modo) {
-    if (!miMac) return;
+    if (!miMac || modo === modoConfirmado) return;
     modoSeleccionado = modo;
     pintarBotonesModo();
     set(ref(db, "dispositivos/" + miMac + "/comando/modo_solicitado"), modo);

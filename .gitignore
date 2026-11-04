@@ -3,3 +3,7 @@
 .netlify/
 node_modules/
 secrets.h
+
+# Cloudflare
+.wrangler/
+.dev.vars
