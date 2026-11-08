@@ -93,6 +93,10 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:85%;line-height:1.1;margin:0}
 .barra-progreso{height:6px;border-radius:999px;background:var(--sunk);border:1px solid var(--line);overflow:hidden}
 .barra-progreso-fill{height:100%;width:0%;background:var(--warn);transition:width .4s linear}
 
+.btn-wifi{font:inherit;font-weight:700;font-size:.85rem;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:10px;padding:10px 14px;cursor:pointer;width:100%}
+.btn-wifi:hover{border-color:var(--signal);color:var(--signal)}
+.btn-wifi:disabled{opacity:.6;cursor:default}
+
 /* Chart */
 .chart-wrap{overflow:hidden}
 .chart-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.8rem}
@@ -213,6 +217,13 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
             <div class="tile sindato" id="tPermanencia"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>Permanencia estática</div><div class="val">—</div></div>
           </div>
           <p class="footer-note">VOC pendiente de integrar SHT40/SGP40 reales en el firmware.</p>
+        </div>
+
+        <div class="card">
+          <div class="group-h"><h2>Configuración del equipo</h2></div>
+          <p class="muted" style="font-size:.85rem">¿Cambiaste el equipo de lugar? Pedile que vuelva a mostrar su punto de acceso WiFi para conectarlo a una red nueva (por ejemplo, el hotspot de tu celular).</p>
+          <button type="button" class="btn-wifi" id="btnReconfigurarWifi">Reconfigurar WiFi del equipo</button>
+          <p class="modo-estado" id="wifiEstadoTxt"></p>
         </div>
       </div>
 
@@ -513,6 +524,44 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
 
   tabFall.addEventListener("click", () => (modoDebug ? simularCambiarModo("FALL") : pedirModo("FALL")));
   tabSleep.addEventListener("click", () => (modoDebug ? simularCambiarModo("SLEEP") : pedirModo("SLEEP")));
+
+  // ===================== Reconfigurar WiFi a distancia =====================
+  // Escribe el mismo tipo de comando que el control de modo, pero el equipo
+  // lo aplica de inmediato (sin debounce de 20s): borra su WiFi guardado y
+  // reabre el punto de acceso "C1001-Setup" -- igual que si alguien hubiera
+  // mantenido presionado el boton BOOT fisico. El equipo se desconecta de
+  // Firebase hasta que alguien lo reconecte a una red (la misma u otra).
+  const btnReconfigurarWifi = document.getElementById("btnReconfigurarWifi");
+  const wifiEstadoTxt = document.getElementById("wifiEstadoTxt");
+
+  btnReconfigurarWifi.addEventListener("click", async () => {
+    if (!miMac) return;
+
+    if (modoDebug) {
+      wifiEstadoTxt.textContent = "En modo simulado esto no hace nada (no hay equipo real al que avisarle).";
+      return;
+    }
+
+    const confirmado = confirm(
+      "Esto va a hacer que el equipo se desconecte y abra de nuevo su punto de acceso WiFi " +
+      "(\"C1001-Setup\"), igual que la primera vez que lo configuraste. " +
+      "Vas a tener que conectarte a esa red desde tu celular para darle el WiFi nuevo.\n\n" +
+      "¿Continuar?"
+    );
+    if (!confirmado) return;
+
+    btnReconfigurarWifi.disabled = true;
+    wifiEstadoTxt.textContent = "Avisando al equipo... puede tardar unos segundos en reiniciarse.";
+
+    try {
+      await set(ref(db, "dispositivos/" + miMac + "/comando/reconfigurar_wifi"), true);
+      wifiEstadoTxt.textContent = "Listo. Cuando el equipo reinicie, conectate a \"C1001-Setup\" desde tu celular para darle la red nueva.";
+    } catch (error) {
+      wifiEstadoTxt.textContent = "No se pudo avisar al equipo. Probá de nuevo.";
+    }
+
+    btnReconfigurarWifi.disabled = false;
+  });
 
   // ===================== Modo simulado/debug =====================
   // TEMPORAL: solo para poder seguir observando y probando el dashboard

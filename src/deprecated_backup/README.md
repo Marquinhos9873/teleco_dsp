@@ -23,5 +23,10 @@
   en la página, se colaba porque la regla nueva no pisaba `background`/`width`/`height`). Se
   corrigió todo en el siguiente commit — este archivo queda solo como referencia del error.
 
+- **`2026-11-08_reconfigurar-wifi-remoto/`**: copia de `dashboard.html` tal como estaba en el
+  commit `1da652b`, justo antes de agregar la tarjeta "Configuración del equipo" con el botón
+  "Reconfigurar WiFi del equipo" (escribe `/dispositivos/{mac}/comando/reconfigurar_wifi`, que
+  el firmware `ESP32_C1001_Firebase_v4` revisa y aplica).
+
 Ninguna copia de esta carpeta se sirve con un link activo desde el sitio — es solo historial
 para comparar o recuperar algo si un rediseño rompe algo.

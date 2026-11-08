@@ -18,5 +18,7 @@ historial de iteraciones y poder abrir cualquier versión directamente en el IDE
 - Cada iteración nueva vive en su propia carpeta `ESP32_C1001_Firebase_vN/ESP32_C1001_Firebase_vN.ino`
   (nombre de carpeta y de archivo iguales, como pide el IDE). La versión más alta de `N` es la
   vigente; las anteriores quedan como historial, no se borran.
-- Vigente: `ESP32_C1001_Firebase_v3/` (fix de AP + botón BOOT + control remoto de modo). `v2`
-  queda como historial. La próxima vez que se modifique, se crea `ESP32_C1001_Firebase_v4/`.
+- Vigente: `ESP32_C1001_Firebase_v4/` (agrega reconfiguración de WiFi a distancia desde el
+  dashboard, vía `/dispositivos/{mac}/comando/reconfigurar_wifi` — además del botón BOOT físico
+  que ya existía). `v3`/`v2` quedan como historial. La próxima vez que se modifique, se crea
+  `ESP32_C1001_Firebase_v5/`.
