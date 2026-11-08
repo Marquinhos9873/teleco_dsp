@@ -236,6 +236,8 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
           <summary>Ver como tabla</summary>
           <table class="datos" id="tablaHistorial"><thead></thead><tbody></tbody></table>
         </details>
+        <button type="button" class="btn-wifi" id="btnDescargarCsv">⬇ Descargar CSV (todo el histórico)</button>
+        <p class="footer-note" id="csvEstadoTxt"></p>
       </div>
 
     </div>
@@ -245,7 +247,7 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getDatabase, ref, onValue, query, limitToLast, set
+    getDatabase, ref, onValue, query, limitToLast, set, get
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -885,6 +887,73 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
         .join("");
     }
   }
+
+  // ===================== Descargar CSV con TODO el histórico =====================
+  // A diferencia del gráfico/tabla de arriba (que solo miran las últimas 20
+  // lecturas vía limitToLast), esto trae absolutamente todo lo que haya en
+  // /dispositivos/{mac}/historial/radar -- pensado para sacar un respaldo
+  // completo (ej. antes de una presentación), no para uso rutinario. Incluye
+  // las columnas de ambos modos (FALL y SLEEP); cada fila deja vacías las
+  // que no le correspondan a su modo.
+  const btnDescargarCsv = document.getElementById("btnDescargarCsv");
+  const csvEstadoTxt = document.getElementById("csvEstadoTxt");
+
+  btnDescargarCsv.addEventListener("click", async () => {
+    if (!miMac) {
+      csvEstadoTxt.textContent = "Todavía no encontramos tu equipo.";
+      return;
+    }
+
+    btnDescargarCsv.disabled = true;
+    csvEstadoTxt.textContent = "Descargando todo el histórico...";
+
+    try {
+      const snap = await get(ref(db, "dispositivos/" + miMac + "/historial/radar"));
+      const datos = snap.val() || {};
+      const filas = Object.values(datos).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+      if (!filas.length) {
+        csvEstadoTxt.textContent = "No hay lecturas guardadas todavía.";
+        btnDescargarCsv.disabled = false;
+        return;
+      }
+
+      const columnas = ["fecha_hora", "presencia", "movimiento", "movimiento_valor", "respiracion", "frecuencia_cardiaca", "estado_caida", "permanencia_estatica"];
+      const filasCsv = filas.map((f) => {
+        const valores = {
+          fecha_hora: f.timestamp ? new Date(f.timestamp).toLocaleString("es-PE") : "",
+          presencia: f.presencia ?? "",
+          movimiento: f.movimiento ?? "",
+          movimiento_valor: f.movimiento_valor ?? "",
+          respiracion: f.respiracion ?? "",
+          frecuencia_cardiaca: f.frecuencia_cardiaca ?? "",
+          estado_caida: f.estado_caida ?? "",
+          permanencia_estatica: f.permanencia_estatica ?? "",
+        };
+        return columnas.map((c) => `"${String(valores[c]).replace(/"/g, '""')}"`).join(",");
+      });
+
+      // BOM al inicio para que Excel abra bien los acentos (á, é, í, ó, ú, ñ).
+      const csv = "﻿" + [columnas.join(","), ...filasCsv].join("\r\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+      const fechaArchivo = new Date().toISOString().slice(0, 10);
+      enlace.href = url;
+      enlace.download = `c1001_historial_${miMac.replace(/:/g, "")}_${fechaArchivo}.csv`;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+      URL.revokeObjectURL(url);
+
+      csvEstadoTxt.textContent = "Listo: " + filas.length + " lecturas descargadas.";
+    } catch (error) {
+      csvEstadoTxt.textContent = "No se pudo descargar. Probá de nuevo.";
+    }
+
+    btnDescargarCsv.disabled = false;
+  });
 </script>
 <script>
 (function(){

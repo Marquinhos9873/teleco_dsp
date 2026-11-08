@@ -28,5 +28,10 @@
   "Reconfigurar WiFi del equipo" (escribe `/dispositivos/{mac}/comando/reconfigurar_wifi`, que
   el firmware `ESP32_C1001_Firebase_v4` revisa y aplica).
 
+- **`2026-11-08_descargar-csv/`**: copia de `dashboard.html` tal como estaba en el commit
+  `bd20760`, justo antes de agregar el botón "Descargar CSV (todo el histórico)" — trae TODO
+  `/dispositivos/{mac}/historial/radar` (no solo las últimas 20 lecturas del gráfico) y lo
+  descarga como `.csv`. Urgente para respaldar datos antes de una presentación.
+
 Ninguna copia de esta carpeta se sirve con un link activo desde el sitio — es solo historial
 para comparar o recuperar algo si un rediseño rompe algo.
