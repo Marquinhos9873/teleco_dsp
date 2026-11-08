@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="es" data-theme="light">
+<html lang="es">
 <head>
 <meta charset="utf-8">
+<script>try{var t=localStorage.getItem("c1001-tema");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <!-- This site is hosted on Netlify. Anyone can build and deploy a site
      like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=2892159a-e16e-40d9-acc4-0fe3dd55f885
      Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
@@ -285,6 +286,13 @@ footer{max-width:1368px;margin:0 auto;padding:18px 16px 28px;border-top:1px soli
 .btn-cta.primary:hover{background:var(--ink)}
 .btn-cta.secondary{background:transparent;border-color:var(--line);color:var(--ink)}
 .btn-cta.secondary:hover{border-color:var(--signal);color:var(--signal)}
+.nav-actions{display:flex;align-items:center;gap:8px}
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);cursor:pointer;flex:none}
+.theme-toggle:hover{border-color:var(--signal)}
+.theme-toggle .icon-moon{display:none}
+:root[data-theme="dark"] .theme-toggle .icon-sun{display:none}
+:root[data-theme="dark"] .theme-toggle .icon-moon{display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .theme-toggle .icon-sun{display:none}:root:not([data-theme="light"]) .theme-toggle .icon-moon{display:block}}
 .hero-scroll{font-size:.82rem;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .hero-scroll:hover{color:var(--signal)}
 
@@ -313,7 +321,13 @@ footer{max-width:1368px;margin:0 auto;padding:18px 16px 28px;border-top:1px soli
 
 <header class="site-nav">
   <div class="brand-mini"><span class="dot" aria-hidden="true"></span> C1001</div>
-  <a class="btn-cta secondary" href="login.html" style="padding:9px 16px;font-size:.88rem">Ingresar</a>
+  <div class="nav-actions">
+    <button type="button" class="theme-toggle" id="themeToggle" aria-pressed="false" aria-label="Cambiar a modo nocturno">
+      <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <a class="btn-cta secondary" href="login.html" style="padding:9px 16px;font-size:.88rem">Ingresar</a>
+  </div>
 </header>
 
 <section class="hero">
@@ -1454,6 +1468,30 @@ S.fall.lastMove=now();
 initTwin(); renderFicha("c1001");
 tick(); setInterval(tick,100);
 (function frame(){drawWave(); requestAnimationFrame(frame);})();
+})();
+</script>
+
+<script>
+(function(){
+  var btn = document.getElementById("themeToggle");
+  if (!btn) return;
+  function efectivo(){
+    var t = document.documentElement.getAttribute("data-theme");
+    if (t === "light" || t === "dark") return t;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  function sync(){
+    var actual = efectivo();
+    btn.setAttribute("aria-pressed", String(actual === "dark"));
+    btn.setAttribute("aria-label", actual === "dark" ? "Cambiar a modo claro" : "Cambiar a modo nocturno");
+  }
+  btn.addEventListener("click", function(){
+    var nuevo = efectivo() === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", nuevo);
+    try { localStorage.setItem("c1001-tema", nuevo); } catch (e) {}
+    sync();
+  });
+  sync();
 })();
 </script>
 

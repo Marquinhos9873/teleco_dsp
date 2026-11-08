@@ -1,4 +1,5 @@
 <!doctype html><html lang="es"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>try{var t=localStorage.getItem("c1001-tema");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <title>C1001 · Dashboard</title>
 <meta name="description" content="Estado en vivo e historico de tu equipo C1001.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -46,19 +47,28 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:85%;line-height:1.1;margin:0}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--crit);display:inline-block}
 .dot.ok{background:var(--ok)}
 .btn-salir{font:inherit;font-size:.78rem;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:8px;padding:4px 9px;cursor:pointer}
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);cursor:pointer;flex:none}
+.theme-toggle:hover{border-color:var(--signal)}
+.theme-toggle .icon-moon{display:none}
+:root[data-theme="dark"] .theme-toggle .icon-sun{display:none}
+:root[data-theme="dark"] .theme-toggle .icon-moon{display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .theme-toggle .icon-sun{display:none}:root:not([data-theme="light"]) .theme-toggle .icon-moon{display:block}}
 
 .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 40px;display:grid;gap:16px}
 .disclaimer{font-size:.8rem;color:var(--warn);background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px;align-content:start}
 .group-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}
-.tile{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--sunk);display:grid;gap:2px;transition:border-color .3s,background .3s}
-.tile .pin{font-family:var(--f-mono);font-size:.68rem;color:var(--muted)}
-.tile .val{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.tile{border:1px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--sunk);display:grid;gap:4px;transition:border-color .3s,background .3s}
+.tile .pin{font-family:var(--f-mono);font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.tile .pin svg{width:14px;height:14px;flex:none;color:var(--muted)}
+.tile .val{font-family:var(--f-display);font-stretch:85%;font-weight:700;font-size:1.65rem;font-variant-numeric:tabular-nums}
 .tile .val small{font-family:var(--f-body);font-size:.75rem;font-weight:400;color:var(--muted)}
 .tile.sindato{opacity:.5}
 .tile.sindato .val{color:var(--muted);font-size:1.1rem}
 .tile.crit{border-color:var(--crit);background:var(--crit-soft)}
+.tile.crit .pin svg{color:var(--crit)}
+.tiles-sep{border-top:1px dashed var(--line);margin-top:2px;padding-top:12px}
 .footer-note{font-size:.78rem;color:var(--muted)}
 
 .layout{display:grid;grid-template-columns:1fr 1.2fr;gap:16px;align-items:start}
@@ -67,7 +77,7 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:85%;line-height:1.1;margin:0}
 /* Control remoto de modo */
 .seg{display:flex;gap:6px;background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:4px}
 .seg button{font:inherit;font-weight:700;font-size:.85rem;border:none;background:transparent;color:var(--muted);padding:7px 14px;border-radius:7px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--signal);color:#fff}
+.seg button[aria-selected="true"]{background:var(--signal);color:#fff}
 .seg button:disabled{opacity:.55;cursor:default}
 .modo-estado{font-size:.78rem;color:var(--muted)}
 .modo-estado.pendiente{color:var(--warn)}
@@ -113,6 +123,10 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
   </div>
   <div class="conn">
     <span class="dot" id="connDot"></span><span id="connTxt">Conectando…</span>
+    <button type="button" class="theme-toggle" id="themeToggle" aria-pressed="false" aria-label="Cambiar a modo nocturno">
+      <svg class="icon-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
     <button type="button" id="btnSalir" class="btn-salir">Cerrar sesión</button>
   </div>
 </header>
@@ -148,42 +162,39 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
       <!-- ===== Columna izquierda: numeros crudos + control de modo ===== -->
       <div style="display:grid;gap:16px">
         <div class="card">
-          <div class="group-h">
-            <h2>Modo del radar</h2>
-            <span class="eyebrow" id="modoEstadoTxt">sin dato aún</span>
+          <div class="group-h"><h2>Última lectura</h2><span class="eyebrow" id="radarHora">sin lecturas aún</span></div>
+
+          <div class="seg" role="tablist" aria-label="Modo del radar">
+            <button type="button" class="tab" id="tabFall" role="tab" aria-selected="false" aria-controls="tilesFall">FALL</button>
+            <button type="button" class="tab" id="tabSleep" role="tab" aria-selected="false" aria-controls="tilesSleep">SLEEP</button>
           </div>
-          <div class="seg" role="group" aria-label="Modo del radar">
-            <button type="button" id="btnModoFall" data-modo="FALL" aria-pressed="false">FALL</button>
-            <button type="button" id="btnModoSleep" data-modo="SLEEP" aria-pressed="false">SLEEP</button>
-          </div>
+          <p class="modo-estado" id="modoEstadoTxt">sin dato aún</p>
           <p class="modo-estado" id="modoPendienteTxt"></p>
           <div class="barra-progreso" id="barraProgreso" hidden><div class="barra-progreso-fill" id="barraProgresoFill"></div></div>
-        </div>
 
-        <div class="card">
-          <div class="group-h"><h2>Lecturas en vivo</h2><span class="eyebrow" id="radarHora">sin lecturas aún</span></div>
+          <!-- Comunes a ambos modos (radar) + ambiente del cuarto -- siempre visibles,
+               sin importar la pestaña activa. Ver fall.ino / basics.ino para los comunes. -->
           <div class="tiles" id="tilesComunes">
-            <div class="tile sindato" id="tPresencia"><div class="pin">Presencia</div><div class="val">—</div></div>
-            <div class="tile sindato" id="tMovimiento"><div class="pin">Movimiento</div><div class="val">—</div></div>
-            <div class="tile sindato" id="tRango"><div class="pin">Rango de movimiento</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tPresencia"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="3.2"/><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"/></svg>Presencia</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tMovimiento"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h4l2-7 4 14 2-7h6"/></svg>Movimiento</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tRango"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18M3 12l4-4M3 12l4 4M21 12l-4-4M21 12l-4 4"/></svg>Rango de movimiento</div><div class="val">—</div></div>
           </div>
-          <div class="tiles" id="tilesSleep" hidden>
-            <div class="tile sindato" id="tResp"><div class="pin">Respiración</div><div class="val">—</div></div>
-            <div class="tile sindato" id="tFc"><div class="pin">Frecuencia cardíaca</div><div class="val">—</div></div>
+          <div class="tiles tiles-sep" id="tilesAmbiente">
+            <div class="tile sindato" id="tTemp"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 14.76V5a2 2 0 0 0-4 0v9.76a3.5 3.5 0 1 0 4 0z"/></svg>Temperatura</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tHum"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg>Humedad</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tVoc"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h11a3 3 0 1 0-3-3M3 16h15a3 3 0 1 1-3 3M3 12h8"/></svg>Calidad de aire (VOC)</div><div class="val">—</div></div>
           </div>
-          <div class="tiles" id="tilesFall" hidden>
-            <div class="tile sindato" id="tCaida"><div class="pin">Estado de caída</div><div class="val">—</div></div>
-            <div class="tile sindato" id="tPermanencia"><div class="pin">Permanencia estática</div><div class="val">—</div></div>
+          <!-- Pestaña SLEEP: datos propios de ese modo (ver DFRobot_HumanDetection, basics.ino) -->
+          <div class="tiles tiles-sep" id="tilesSleep" role="tabpanel" aria-labelledby="tabSleep" hidden>
+            <div class="tile sindato" id="tResp"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h3l2 5 3-10 3 10 2-5h3l2 3h2"/></svg>Respiración</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tFc"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 8.6c0 4-5.4 7.6-8.8 10.2C8.6 16.2 3.2 12.6 3.2 8.6a4.6 4.6 0 0 1 8.6-2.2 4.6 4.6 0 0 1 9 2.2z"/></svg>Frecuencia cardíaca</div><div class="val">—</div></div>
           </div>
-        </div>
-
-        <div class="card">
-          <div class="group-h"><h2>Ambiente</h2><span class="eyebrow" id="ambienteHora">sin lecturas aun</span></div>
-          <div class="tiles">
-            <div class="tile sindato" id="tTemp"><div class="pin">Temperatura</div><div class="val">—</div></div>
-            <div class="tile sindato" id="tHum"><div class="pin">Humedad relativa</div><div class="val">—</div></div>
+          <!-- Pestaña FALL: datos propios de ese modo (ver fall.ino) -->
+          <div class="tiles tiles-sep" id="tilesFall" role="tabpanel" aria-labelledby="tabFall" hidden>
+            <div class="tile sindato" id="tCaida"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.6 17a1.8 1.8 0 0 0 1.55 2.7h15.7A1.8 1.8 0 0 0 21.4 17L13.7 3.9a1.8 1.8 0 0 0-3.1 0z"/></svg>Estado de caída</div><div class="val">—</div></div>
+            <div class="tile sindato" id="tPermanencia"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>Permanencia estática</div><div class="val">—</div></div>
           </div>
-          <p class="footer-note">Pendiente de integrar SHT40/SGP40 reales en el firmware.</p>
+          <p class="footer-note">VOC pendiente de integrar SHT40/SGP40 reales en el firmware.</p>
         </div>
       </div>
 
@@ -360,27 +371,38 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
     });
   }
 
-  // ===================== Ambiente (ruta global, sin cambios) =====================
+  // ===================== Ambiente (ruta global, fusionado visualmente con =====================
+  // "Lecturas en vivo" -- sigue siendo un listener aparte porque la ruta en
+  // Firebase tambien es aparte (otro sketch, SHT40/SGP40 todavia sin
+  // integrar). "radarHora" arriba cubre el "ultima actualizacion" de toda
+  // la tarjeta ahora que ambiente y radar comparten el mismo bloque visual.
   onValue(ref(db, "estado_actual/ambiente"), (snap) => {
     const datos = snap.val();
+    if (!datos) return;
+
     const tTemp = document.getElementById("tTemp");
     const tHum = document.getElementById("tHum");
-
-    if (!datos) {
-      document.getElementById("ambienteHora").textContent = "sin lecturas aun";
-      return;
-    }
+    const tVoc = document.getElementById("tVoc");
 
     tTemp.classList.remove("sindato");
     tHum.classList.remove("sindato");
     tTemp.querySelector(".val").innerHTML = datos.temperatura.toFixed(1) + " <small>°C</small>";
     tHum.querySelector(".val").innerHTML = datos.humedad.toFixed(1) + " <small>%HR</small>";
-    document.getElementById("ambienteHora").textContent = horaLegible(datos.timestamp);
+
+    if (datos.voc_idx !== undefined) {
+      tVoc.classList.remove("sindato");
+      tVoc.querySelector(".val").textContent = datos.voc_idx;
+    }
   });
 
-  // ===================== Control remoto de modo =====================
-  const btnModoFall = document.getElementById("btnModoFall");
-  const btnModoSleep = document.getElementById("btnModoSleep");
+  // ===================== Control remoto de modo (pestañas FALL / SLEEP) =====================
+  // Cada pestaña es, a la vez, el selector de panel (que tiles/grafico se ven)
+  // y el control remoto (clickearla pide ese modo al equipo) -- son la misma
+  // accion, como ya eran los botones antes de este cambio.
+  const tabFall = document.getElementById("tabFall");
+  const tabSleep = document.getElementById("tabSleep");
+  const tilesSleep = document.getElementById("tilesSleep");
+  const tilesFall = document.getElementById("tilesFall");
   const modoEstadoTxt = document.getElementById("modoEstadoTxt");
   const modoPendienteTxt = document.getElementById("modoPendienteTxt");
 
@@ -428,14 +450,20 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
     modoPendienteTxt.classList.remove("tardando");
   }
 
-  function pintarBotonesModo() {
-    btnModoFall.setAttribute("aria-pressed", String(modoSeleccionado === "FALL"));
-    btnModoSleep.setAttribute("aria-pressed", String(modoSeleccionado === "SLEEP"));
+  function pintarPestanas() {
+    tabFall.setAttribute("aria-selected", String(modoSeleccionado === "FALL"));
+    tabSleep.setAttribute("aria-selected", String(modoSeleccionado === "SLEEP"));
+    // La pestaña visible la decide modoSeleccionado (que pestaña se pidio),
+    // no la forma de la ultima lectura -- asi al cambiar de modo se ve de
+    // una el panel de destino (con sus tiles en "sindato") en vez de seguir
+    // mostrando los datos del modo viejo con la etiqueta del modo nuevo.
+    tilesFall.hidden = modoSeleccionado !== "FALL";
+    tilesSleep.hidden = modoSeleccionado !== "SLEEP";
 
     const pendiente = Boolean(modoSeleccionado) && modoSeleccionado !== modoConfirmado;
     modoPendienteTxt.classList.toggle("pendiente", pendiente);
-    btnModoFall.disabled = pendiente;
-    btnModoSleep.disabled = pendiente;
+    tabFall.disabled = pendiente;
+    tabSleep.disabled = pendiente;
 
     if (pendiente) {
       if (!tiempoInicioPendiente) iniciarProgresoPendiente();
@@ -443,17 +471,19 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
       modoPendienteTxt.textContent = "";
       detenerProgresoPendiente();
     }
+
+    renderHistorial();
   }
 
   function pedirModo(modo) {
     if (!miMac || modo === modoConfirmado) return;
     modoSeleccionado = modo;
-    pintarBotonesModo();
+    pintarPestanas();
     set(ref(db, "dispositivos/" + miMac + "/comando/modo_solicitado"), modo);
   }
 
-  btnModoFall.addEventListener("click", () => pedirModo("FALL"));
-  btnModoSleep.addEventListener("click", () => pedirModo("SLEEP"));
+  tabFall.addEventListener("click", () => pedirModo("FALL"));
+  tabSleep.addEventListener("click", () => pedirModo("SLEEP"));
 
   // ===================== Listeners del equipo encontrado =====================
   function escucharEquipo(mac) {
@@ -462,7 +492,7 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
       modoConfirmado = modo;
       if (!modoSeleccionado) modoSeleccionado = modo;
       modoEstadoTxt.textContent = modo ? "modo " + modo + " confirmado" : "sin dato aún";
-      pintarBotonesModo();
+      pintarPestanas();
     });
 
     onValue(ref(db, "dispositivos/" + mac + "/estado_actual/radar"), (snap) => {
@@ -471,15 +501,13 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
 
     onValue(query(ref(db, "dispositivos/" + mac + "/historial/radar"), limitToLast(20)), (snap) => {
       const datos = snap.val() || {};
-      const filas = Object.values(datos).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-      pintarHistorial(filas);
+      historialCrudo = Object.values(datos).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      renderHistorial();
     });
   }
 
   function pintarLecturaViva(datos) {
     const radarHora = document.getElementById("radarHora");
-    const tilesSleep = document.getElementById("tilesSleep");
-    const tilesFall = document.getElementById("tilesFall");
 
     if (!datos) {
       radarHora.textContent = "sin lecturas aún";
@@ -498,10 +526,12 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
     tMovimiento.querySelector(".val").textContent = ["Ninguno", "Quieto", "Activo"][datos.movimiento] ?? "—";
     tRango.querySelector(".val").textContent = datos.movimiento_valor ?? "—";
 
+    // Ojo: esto solo decide en que tiles se escribe el VALOR (segun la forma
+    // real del dato que llego), no cual panel esta visible -- eso lo maneja
+    // pintarPestanas() segun modoSeleccionado. Asi, si cambiaste de pestaña
+    // antes de que el equipo confirme, no perdes el ultimo valor conocido
+    // del otro modo al volver a mirarlo.
     const esSleep = datos.respiracion !== undefined;
-
-    tilesSleep.hidden = !esSleep;
-    tilesFall.hidden = esSleep;
 
     if (esSleep) {
       document.getElementById("tResp").classList.remove("sindato");
@@ -548,14 +578,29 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
     return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
   }
 
-  function pintarHistorial(filas) {
+  // Cache cruda de las ultimas 20 lecturas de /historial/radar (puede tener
+  // formas mezcladas si hubo un cambio de modo reciente). El render filtra
+  // por pestaña activa -- cada pestaña muestra SU historico, no el de la
+  // ultima lectura que haya llegado.
+  let historialCrudo = [];
+
+  function renderHistorial() {
+    if (!modoSeleccionado) return;
+    const esSleep = modoSeleccionado === "SLEEP";
+    const filas = historialCrudo.filter((f) =>
+      esSleep ? f.respiracion !== undefined : f.estado_caida !== undefined
+    );
+    pintarHistorial(filas, esSleep);
+  }
+
+  function pintarHistorial(filas, esSleep) {
     const chartHost = document.getElementById("chartHost");
     const chartLegend = document.getElementById("chartLegend");
     const cantidadSpan = document.getElementById("historialCantidad");
     const tabla = document.getElementById("tablaHistorial");
 
     if (!filas.length) {
-      chartHost.innerHTML = '<p class="chart-empty">Todavía no hay suficientes lecturas para graficar.</p>';
+      chartHost.innerHTML = `<p class="chart-empty">Todavía no hay lecturas en modo ${esSleep ? "SLEEP" : "FALL"} para graficar.</p>`;
       chartLegend.innerHTML = "";
       cantidadSpan.textContent = "sin datos aún";
       tabla.querySelector("thead").innerHTML = "";
@@ -565,7 +610,6 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
 
     cantidadSpan.textContent = filas.length + " lecturas recientes";
 
-    const esSleep = filas[filas.length - 1].respiracion !== undefined;
     const W = 480, H = 220, PAD = 28;
 
     if (esSleep) {
@@ -637,5 +681,28 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
         .join("");
     }
   }
+</script>
+<script>
+(function(){
+  var btn = document.getElementById("themeToggle");
+  if (!btn) return;
+  function efectivo(){
+    var t = document.documentElement.getAttribute("data-theme");
+    if (t === "light" || t === "dark") return t;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+  function sync(){
+    var actual = efectivo();
+    btn.setAttribute("aria-pressed", String(actual === "dark"));
+    btn.setAttribute("aria-label", actual === "dark" ? "Cambiar a modo claro" : "Cambiar a modo nocturno");
+  }
+  btn.addEventListener("click", function(){
+    var nuevo = efectivo() === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", nuevo);
+    try { localStorage.setItem("c1001-tema", nuevo); } catch (e) {}
+    sync();
+  });
+  sync();
+})();
 </script>
 </body></html>
