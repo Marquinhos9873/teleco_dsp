@@ -14,6 +14,14 @@
   persistente en `dashboard.html`; y el hero con círculo dibujado a mano, tarjeta mockup en vivo y
   sección de pasos con fondo oscuro en `index.html` (inspirado en una referencia de diseño tipo
   Medivara que trajo el usuario).
+- **`2026-11-08_hero-roto-primera-version/`**: copia de `index.html` tal como quedó publicada en
+  producción en el primer intento del hero tipo Medivara — con bugs reales confirmados con
+  capturas de pantalla (Playwright): el hero seguía con fondo claro y la tarjeta flotando en un
+  vacío sin relación con el texto, el círculo a mano resaltaba "cámaras" (la palabra que se está
+  negando, confuso), el aro de pulso se rompía en mobile, y los números "01/02/03" se veían como
+  un ícono en vez de un número (un `.num{}` global de 22px/circular, ya existente para otra cosa
+  en la página, se colaba porque la regla nueva no pisaba `background`/`width`/`height`). Se
+  corrigió todo en el siguiente commit — este archivo queda solo como referencia del error.
 
 Ninguna copia de esta carpeta se sirve con un link activo desde el sitio — es solo historial
 para comparar o recuperar algo si un rediseño rompe algo.
