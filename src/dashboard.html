@@ -54,6 +54,12 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:85%;line-height:1.1;margin:0}
 :root[data-theme="dark"] .theme-toggle .icon-moon{display:block}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .theme-toggle .icon-sun{display:none}:root:not([data-theme="light"]) .theme-toggle .icon-moon{display:block}}
 
+/* Boton temporal de datos simulados -- quitar cuando el equipo este publicado y no haga falta mas */
+.btn-debug{font:inherit;font-weight:700;font-size:.78rem;border:1px solid var(--warn);background:var(--sunk);color:var(--warn);border-radius:8px;padding:4px 10px;cursor:pointer}
+.btn-debug[aria-pressed="true"]{background:var(--warn);color:#fff}
+.banner-debug{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--warn-soft,rgba(168,106,18,.12));border:1px solid var(--warn);border-radius:12px;padding:10px 14px;font-size:.85rem}
+.banner-debug button{font:inherit;font-weight:700;font-size:.82rem;border:none;border-radius:8px;padding:7px 14px;background:var(--warn);color:#fff;cursor:pointer}
+
 .wrap{max-width:1180px;margin:0 auto;padding:18px 16px 40px;display:grid;gap:16px}
 .disclaimer{font-size:.8rem;color:var(--warn);background:var(--sunk);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px;align-content:start}
@@ -127,6 +133,7 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
       <svg class="icon-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
       <svg class="icon-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
     </button>
+    <button type="button" class="btn-debug" id="btnDebug" aria-pressed="false" title="Mostrar datos simulados para poder observar el dashboard sin el equipo encendido (temporal, hasta publicar todo)">🧪 Simulado</button>
     <button type="button" id="btnSalir" class="btn-salir">Cerrar sesión</button>
   </div>
 </header>
@@ -147,6 +154,12 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
   <div class="banner-sonido" id="bannerSonido">
     <span>🔔 Activá el sonido para recibir alertas si el radar detecta algo fuera de lo normal.</span>
     <button type="button" id="btnHabilitarSonido">Activar alertas sonoras</button>
+  </div>
+
+  <!-- Temporal: solo hasta que el equipo este publicado y siempre haya datos reales que mirar -->
+  <div class="banner-debug" id="bannerDebug" hidden>
+    <span>🧪 Modo simulado: estos datos son de ejemplo, no vienen del equipo real. No se guardan ni se envían a ningún lado.</span>
+    <button type="button" id="btnSimularCaida">Simular caída</button>
   </div>
 
   <p class="disclaimer">Esta vista muestra datos reales publicados por el dispositivo. Si tu equipo todavía no está encendido y vinculado, vas a ver un aviso para configurarlo.</p>
@@ -348,6 +361,8 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
   // cual tiene meta.propietario_correo === mi correo. Funciona bien para un
   // pilote de pocos equipos; con muchos, conviene un indice inverso
   // /usuarios/{uid}/dispositivos_asignados en vez de escanear todo.
+  let hayEquipoReal = false;  // ultimo estado real conocido, para restaurarlo al salir del modo simulado
+
   function buscarMiEquipo(correo) {
     onValue(ref(db, "dispositivos"), (snap) => {
       const datos = snap.val() || {};
@@ -355,16 +370,14 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
         (mac) => datos[mac]?.meta?.propietario_correo === correo
       );
 
-      if (!macEncontrada) {
-        cardSinEquipo.hidden = false;
-        panelEquipo.hidden = true;
-        return;
+      hayEquipoReal = Boolean(macEncontrada);
+
+      if (!modoDebug) {
+        cardSinEquipo.hidden = hayEquipoReal;
+        panelEquipo.hidden = !hayEquipoReal;
       }
 
-      cardSinEquipo.hidden = true;
-      panelEquipo.hidden = false;
-
-      if (macEncontrada !== miMac) {
+      if (macEncontrada && macEncontrada !== miMac) {
         miMac = macEncontrada;
         escucharEquipo(miMac);
       }
@@ -482,8 +495,115 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
     set(ref(db, "dispositivos/" + miMac + "/comando/modo_solicitado"), modo);
   }
 
-  tabFall.addEventListener("click", () => pedirModo("FALL"));
-  tabSleep.addEventListener("click", () => pedirModo("SLEEP"));
+  tabFall.addEventListener("click", () => (modoDebug ? simularCambiarModo("FALL") : pedirModo("FALL")));
+  tabSleep.addEventListener("click", () => (modoDebug ? simularCambiarModo("SLEEP") : pedirModo("SLEEP")));
+
+  // ===================== Modo simulado/debug =====================
+  // TEMPORAL: solo para poder seguir observando y probando el dashboard
+  // (tiles, pestañas, alertas, grafico) sin tener el C1001 real encendido y
+  // vinculado. Quitar este bloque (boton, banner, funciones de abajo) una
+  // vez que el equipo este publicado y siempre haya datos reales a mano.
+  const btnDebug = document.getElementById("btnDebug");
+  const bannerDebug = document.getElementById("bannerDebug");
+  const btnSimularCaida = document.getElementById("btnSimularCaida");
+
+  let modoDebug = false;
+  let intervaloDebug = null;
+  let caidaForzada = false;
+
+  function valorSimulado(base, variacion) {
+    return Math.round(base + (Math.random() - 0.5) * variacion);
+  }
+
+  // Cambia de pestaña SIN escribir en Firebase (a diferencia de pedirModo) --
+  // en modo simulado no hay equipo real al que pedirle nada.
+  function simularCambiarModo(modo) {
+    modoSeleccionado = modo;
+    modoConfirmado = modo;
+    pintarPestanas();
+    simularTick();
+  }
+
+  function simularTick() {
+    const ahora = Date.now();
+    const modo = modoSeleccionado || "SLEEP";
+
+    // Ambiente simulado -- mismas tiles que pinta el listener real de
+    // estado_actual/ambiente, asi que al salir del modo simulado el
+    // proximo dato real las vuelve a pisar sin que haga falta nada mas.
+    const tTemp = document.getElementById("tTemp");
+    const tHum = document.getElementById("tHum");
+    const tVoc = document.getElementById("tVoc");
+    tTemp.classList.remove("sindato");
+    tHum.classList.remove("sindato");
+    tVoc.classList.remove("sindato");
+    tTemp.querySelector(".val").innerHTML = valorSimulado(23, 3) + " <small>°C</small>";
+    tHum.querySelector(".val").innerHTML = valorSimulado(55, 10) + " <small>%HR</small>";
+    tVoc.querySelector(".val").textContent = valorSimulado(90, 30);
+
+    const datos = modo === "SLEEP"
+      ? {
+          timestamp: ahora,
+          presencia: 1,
+          movimiento: 1,
+          movimiento_valor: valorSimulado(10, 10),
+          respiracion: valorSimulado(16, 4),
+          frecuencia_cardiaca: valorSimulado(68, 10),
+        }
+      : {
+          timestamp: ahora,
+          presencia: 1,
+          movimiento: caidaForzada ? 2 : 1,
+          movimiento_valor: caidaForzada ? valorSimulado(75, 10) : valorSimulado(15, 10),
+          estado_caida: caidaForzada ? 1 : 0,
+          permanencia_estatica: 0,
+        };
+
+    pintarLecturaViva(datos);  // reutiliza la misma logica (y las mismas alertas) que los datos reales
+    caidaForzada = false;
+
+    historialCrudo.push(datos);
+    if (historialCrudo.length > 20) historialCrudo.shift();
+    renderHistorial();
+  }
+
+  function activarDebug() {
+    modoDebug = true;
+    btnDebug.setAttribute("aria-pressed", "true");
+    bannerDebug.hidden = false;
+    cardSinEquipo.hidden = true;
+    panelEquipo.hidden = false;
+
+    if (!modoSeleccionado) {
+      modoSeleccionado = "SLEEP";
+      modoConfirmado = "SLEEP";
+    }
+    historialCrudo = [];
+    pintarPestanas();
+    simularTick();
+    intervaloDebug = setInterval(simularTick, 3000);
+  }
+
+  function desactivarDebug() {
+    modoDebug = false;
+    btnDebug.setAttribute("aria-pressed", "false");
+    bannerDebug.hidden = true;
+    clearInterval(intervaloDebug);
+    intervaloDebug = null;
+
+    // Vuelve al estado real conocido -- si no hay equipo real, esto muestra
+    // de nuevo el aviso de "todavia no encontramos tu equipo".
+    cardSinEquipo.hidden = hayEquipoReal;
+    panelEquipo.hidden = !hayEquipoReal;
+  }
+
+  btnDebug.addEventListener("click", () => (modoDebug ? desactivarDebug() : activarDebug()));
+  btnSimularCaida.addEventListener("click", () => {
+    if (!modoDebug) return;
+    if (modoSeleccionado !== "FALL") simularCambiarModo("FALL");
+    caidaForzada = true;
+    simularTick();
+  });
 
   // ===================== Listeners del equipo encontrado =====================
   function escucharEquipo(mac) {
