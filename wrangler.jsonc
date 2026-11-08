@@ -1,0 +1,6 @@
+{
+  // Sitio estático sin build step. Todo lo que está en src/ se publica tal cual.
+  "name": "teleco-dsp",
+  "compatibility_date": "2026-10-29",
+  "assets": { "directory": "./src" }
+}
