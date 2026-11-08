@@ -296,13 +296,33 @@ footer{max-width:1368px;margin:0 auto;padding:18px 16px 28px;border-top:1px soli
 .hero-scroll{font-size:.82rem;color:var(--muted);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .hero-scroll:hover{color:var(--signal)}
 
-.steps{max-width:1368px;margin:0 auto;padding:8px 16px 48px}
-.steps h2{font-size:clamp(1.2rem,2.4vw,1.55rem);margin-bottom:18px;max-width:30ch}
+/* Palabra resaltada con un circulo dibujado a mano -- el unico lugar del sitio
+   donde usamos --warn como acento decorativo en vez de estado */
+.resaltado{position:relative;white-space:nowrap}
+.resaltado svg{position:absolute;left:-8%;top:-22%;width:116%;height:150%;overflow:visible;pointer-events:none}
+.resaltado path{fill:none;stroke:var(--warn);stroke-width:3.5;stroke-linecap:round}
+
+/* Tarjeta flotante en el hero: una vista previa real del dashboard, no un
+   mockup generico -- mismo lenguaje visual (tiles) que dashboard.html */
+.hero-mock{position:absolute;top:8px;right:16px;width:216px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:0 20px 44px rgba(10,30,30,.18);display:grid;gap:10px;z-index:1}
+.hero-mock-top{display:flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.hero-mock-top .dot-live{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.hero-mock-tile{background:var(--sunk);border:1px solid var(--line);border-radius:10px;padding:7px 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.hero-mock-tile span{font-family:var(--f-mono);font-size:.64rem;color:var(--muted)}
+.hero-mock-tile b{font-family:var(--f-display);font-weight:700;font-size:.92rem;white-space:nowrap}
+.hero-mock-tile b i{font-style:normal;font-size:.62rem;color:var(--muted);font-weight:400}
+@media(max-width:860px){.hero-mock{position:static;width:100%;margin-top:24px}}
+
+.steps{background:var(--ink);padding:clamp(40px,7vw,64px) 16px;margin-top:8px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .steps{background:#0A1013}}
+:root[data-theme="dark"] .steps{background:#0A1013}
+.steps-inner{max-width:1368px;margin:0 auto}
+.steps h2{font-size:clamp(1.2rem,2.4vw,1.55rem);margin-bottom:22px;max-width:30ch;color:#fff}
 .steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.step{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:grid;gap:8px;align-content:start}
-.step .num{font-family:var(--f-mono);font-size:.78rem;color:var(--signal)}
-.step h3{font-size:1.02rem}
-.step p{font-size:.88rem;color:var(--muted)}
+.step{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:var(--r);padding:22px;display:grid;gap:8px;align-content:start}
+.step .num{font-family:var(--f-display);font-weight:800;font-stretch:85%;font-size:2.1rem;line-height:1;color:var(--signal)}
+.step h3{font-size:1.04rem;color:#fff}
+.step p{font-size:.88rem;color:rgba(255,255,255,.66)}
 @media(max-width:860px){.steps-grid{grid-template-columns:1fr}}
 
 .trust{max-width:1368px;margin:0 auto;padding:8px 16px 56px;display:grid;grid-template-columns:1.05fr 1fr;gap:30px;align-items:start}
@@ -336,9 +356,17 @@ footer{max-width:1368px;margin:0 auto;padding:18px 16px 28px;border-top:1px soli
     <circle class="r2" cx="320" cy="90" r="18"/>
     <circle class="r3" cx="320" cy="90" r="18"/>
   </svg>
+
+  <div class="hero-mock" aria-hidden="true">
+    <div class="hero-mock-top"><span class="dot-live"></span> En vivo</div>
+    <div class="hero-mock-tile"><span>Presencia</span><b>Presente</b></div>
+    <div class="hero-mock-tile"><span>Respiración</span><b>16 <i>resp/min</i></b></div>
+    <div class="hero-mock-tile"><span>Frec. cardíaca</span><b>68 <i>lat/min</i></b></div>
+  </div>
+
   <div class="hero-inner">
     <span class="eyebrow">Monitoreo con radar, no con cámara</span>
-    <h1 class="hero-title">Sabé cómo está tu familiar, sin cámaras ni pulseras.</h1>
+    <h1 class="hero-title">Sabé cómo está tu familiar, sin <span class="resaltado">cámaras<svg viewBox="0 0 160 70" aria-hidden="true"><path d="M12 38 C 8 15, 45 4, 85 5 C 130 6, 155 20, 150 36 C 145 54, 100 64, 60 62 C 25 60, 6 50, 12 38 Z"/></svg></span> ni pulseras.</h1>
     <p class="hero-sub">El C1001 detecta presencia, caídas y calidad del sueño con ondas de radar. Vos revisás el estado en vivo desde cualquier navegador, estés donde estés.</p>
     <div class="hero-ctas">
       <a class="btn-cta primary" href="registro.html">Crear cuenta</a>
@@ -349,11 +377,13 @@ footer{max-width:1368px;margin:0 auto;padding:18px 16px 28px;border-top:1px soli
 </section>
 
 <section class="steps" aria-labelledby="como-funciona-h">
-  <h2 id="como-funciona-h">Tres pasos, sin que tu familiar tenga que hacer nada</h2>
-  <div class="steps-grid">
-    <div class="step"><span class="num">01</span><h3>El radar detecta</h3><p>El C1001 mide presencia, movimiento, respiración y pulso con ondas — no graba imagen ni sonido.</p></div>
-    <div class="step"><span class="num">02</span><h3>El equipo envía</h3><p>Un ESP32 manda esas lecturas a una base de datos en vivo cada pocos segundos, por su propia red WiFi.</p></div>
-    <div class="step"><span class="num">03</span><h3>Vos lo ves</h3><p>Entrás con tu cuenta y mirás el estado actual desde el celular o la computadora.</p></div>
+  <div class="steps-inner">
+    <h2 id="como-funciona-h">Tres pasos, sin que tu familiar tenga que hacer nada</h2>
+    <div class="steps-grid">
+      <div class="step"><span class="num">01</span><h3>El radar detecta</h3><p>El C1001 mide presencia, movimiento, respiración y pulso con ondas — no graba imagen ni sonido.</p></div>
+      <div class="step"><span class="num">02</span><h3>El equipo envía</h3><p>Un ESP32 manda esas lecturas a una base de datos en vivo cada pocos segundos, por su propia red WiFi.</p></div>
+      <div class="step"><span class="num">03</span><h3>Vos lo ves</h3><p>Entrás con tu cuenta y mirás el estado actual desde el celular o la computadora.</p></div>
+    </div>
   </div>
 </section>
 

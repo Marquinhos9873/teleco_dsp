@@ -11,7 +11,7 @@
   --bg:#EDF2F2; --surface:#FFFFFF; --sunk:#F5F8F8; --ink:#13232A; --muted:#566A72; --line:#D2DCDE;
   --signal:#0A7470; --signal-soft:rgba(10,116,112,.12);
   --night:#4A4FB8; --night-soft:rgba(74,79,184,.12);
-  --ok:#2E7D4F; --warn:#A86A12; --crit:#C03A28; --crit-soft:rgba(192,58,40,.12);
+  --ok:#2E7D4F; --warn:#A86A12; --crit:#C03A28; --crit-soft:rgba(192,58,40,.12); --warn-soft:rgba(168,106,18,.12);
   --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
   --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
@@ -21,13 +21,13 @@
   --bg:#0D1518; --surface:#142026; --sunk:#101A1F; --ink:#E2EBED; --muted:#8FA2A9; --line:#26373E;
   --signal:#45C2B8; --signal-soft:rgba(69,194,184,.14);
   --night:#9196F2; --night-soft:rgba(145,150,242,.15);
-  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15);
+  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15); --warn-soft:rgba(227,170,77,.15);
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0D1518; --surface:#142026; --sunk:#101A1F; --ink:#E2EBED; --muted:#8FA2A9; --line:#26373E;
   --signal:#45C2B8; --signal-soft:rgba(69,194,184,.14);
   --night:#9196F2; --night-soft:rgba(145,150,242,.15);
-  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15)}
+  --ok:#63C98E; --warn:#E3AA4D; --crit:#F2735B; --crit-soft:rgba(242,115,91,.15); --warn-soft:rgba(227,170,77,.15)}
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -74,6 +74,8 @@ h1,h2,h3{font-family:var(--f-display);font-stretch:85%;line-height:1.1;margin:0}
 .tile.sindato .val{color:var(--muted);font-size:1.1rem}
 .tile.crit{border-color:var(--crit);background:var(--crit-soft)}
 .tile.crit .pin svg{color:var(--crit)}
+.tile.warn{border-color:var(--warn);background:var(--warn-soft)}
+.tile.warn .pin svg{color:var(--warn)}
 .tiles-sep{border-top:1px dashed var(--line);margin-top:2px;padding-top:12px}
 .footer-note{font-size:.78rem;color:var(--muted)}
 
@@ -114,7 +116,7 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
 .alerta-modal.crit{animation:latido 1s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){.alerta-modal.crit{animation:none}}
 @keyframes latido{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
-.alerta-icono{width:46px;height:46px;border-radius:50%;background:var(--warn-soft,var(--signal-soft));display:grid;place-items:center;margin:0 auto;color:var(--warn)}
+.alerta-icono{width:46px;height:46px;border-radius:50%;background:var(--warn-soft);display:grid;place-items:center;margin:0 auto;color:var(--warn)}
 .alerta-modal.crit .alerta-icono{background:var(--crit-soft);color:var(--crit)}
 .alerta-modal h2{font-size:1.15rem}
 .alerta-modal p{font-size:.9rem;color:var(--muted)}
@@ -159,7 +161,10 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
   <!-- Temporal: solo hasta que el equipo este publicado y siempre haya datos reales que mirar -->
   <div class="banner-debug" id="bannerDebug" hidden>
     <span>🧪 Modo simulado: estos datos son de ejemplo, no vienen del equipo real. No se guardan ni se envían a ningún lado.</span>
-    <button type="button" id="btnSimularCaida">Simular caída</button>
+    <span style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" id="btnSimularAnomalo">Simular valor anómalo (SLEEP)</button>
+      <button type="button" id="btnSimularCaida">Simular caída (FALL)</button>
+    </span>
   </div>
 
   <p class="disclaimer">Esta vista muestra datos reales publicados por el dispositivo. Si tu equipo todavía no está encendido y vinculado, vas a ver un aviso para configurarlo.</p>
@@ -272,29 +277,40 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
   let audioCtx = null;
   let sonidoHabilitado = false;
 
-  function reproducirBeep(repeticiones, frecuencia) {
+  // Un tono suave (envolvente lenta, onda senoidal) -- nunca un pitido seco.
+  function tono(frecuencia, inicio, duracion) {
     if (!sonidoHabilitado || !audioCtx) return;
-    let t = audioCtx.currentTime;
-    for (let i = 0; i < repeticiones; i++) {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.frequency.value = frecuencia;
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-      osc.start(t);
-      osc.stop(t + 0.24);
-      t += 0.34;
-    }
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = frecuencia;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    gain.gain.setValueAtTime(0.0001, inicio);
+    gain.gain.exponentialRampToValueAtTime(0.3, inicio + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, inicio + duracion);
+    osc.start(inicio);
+    osc.stop(inicio + duracion + 0.03);
+  }
+
+  // Timbre de dos notas (como una notificacion, no una alarma de pitidos
+  // repetidos): en "warn" suena una vez; en "crit" se repite una vez mas,
+  // mas presente pero sin ser un sonido exagerado.
+  function reproducirAlertaSonora(nivel) {
+    if (!sonidoHabilitado || !audioCtx) return;
+    const t0 = audioCtx.currentTime;
+    const repeticiones = nivel === "crit" ? [0, 0.55] : [0];
+    repeticiones.forEach((offset) => {
+      tono(880, t0 + offset, 0.16);
+      tono(659, t0 + offset + 0.17, 0.22);
+    });
   }
 
   btnHabilitarSonido.addEventListener("click", () => {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     sonidoHabilitado = true;
     bannerSonido.hidden = true;
-    reproducirBeep(1, 880);  // confirmacion de que el sonido quedo activo
+    tono(880, audioCtx.currentTime, 0.12);  // confirmacion breve de que el sonido quedo activo
   });
 
   // nivel: "crit" (caida) o "warn" (valor fuera de rango). Si ya hay una
@@ -306,7 +322,7 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
     alertaHora.textContent = new Date().toLocaleTimeString("es-PE");
     alertaOverlay.hidden = false;
     btnAlertaOk.focus();
-    reproducirBeep(nivel === "crit" ? 3 : 1, nivel === "crit" ? 920 : 660);
+    reproducirAlertaSonora(nivel);
   }
 
   function cerrarAlerta() {
@@ -506,10 +522,12 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
   const btnDebug = document.getElementById("btnDebug");
   const bannerDebug = document.getElementById("bannerDebug");
   const btnSimularCaida = document.getElementById("btnSimularCaida");
+  const btnSimularAnomalo = document.getElementById("btnSimularAnomalo");
 
   let modoDebug = false;
   let intervaloDebug = null;
   let caidaForzada = false;
+  let anomaliaForzada = false;
 
   function valorSimulado(base, variacion) {
     return Math.round(base + (Math.random() - 0.5) * variacion);
@@ -545,10 +563,13 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
       ? {
           timestamp: ahora,
           presencia: 1,
-          movimiento: 1,
+          movimiento: anomaliaForzada ? 2 : 1,
           movimiento_valor: valorSimulado(10, 10),
-          respiracion: valorSimulado(16, 4),
-          frecuencia_cardiaca: valorSimulado(68, 10),
+          // "Medianamente anomalo": pasa el umbral (30 resp/min, 140 lat/min)
+          // sin irse a un extremo absurdo, para que se note en la tile y en
+          // la alerta sin perder credibilidad como dato de ejemplo.
+          respiracion: anomaliaForzada ? valorSimulado(36, 6) : valorSimulado(16, 4),
+          frecuencia_cardiaca: anomaliaForzada ? valorSimulado(150, 10) : valorSimulado(68, 10),
         }
       : {
           timestamp: ahora,
@@ -561,6 +582,7 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
 
     pintarLecturaViva(datos);  // reutiliza la misma logica (y las mismas alertas) que los datos reales
     caidaForzada = false;
+    anomaliaForzada = false;
 
     historialCrudo.push(datos);
     if (historialCrudo.length > 20) historialCrudo.shift();
@@ -602,6 +624,12 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
     if (!modoDebug) return;
     if (modoSeleccionado !== "FALL") simularCambiarModo("FALL");
     caidaForzada = true;
+    simularTick();
+  });
+  btnSimularAnomalo.addEventListener("click", () => {
+    if (!modoDebug) return;
+    if (modoSeleccionado !== "SLEEP") simularCambiarModo("SLEEP");
+    anomaliaForzada = true;
     simularTick();
   });
 
@@ -654,15 +682,22 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
     const esSleep = datos.respiracion !== undefined;
 
     if (esSleep) {
-      document.getElementById("tResp").classList.remove("sindato");
-      document.getElementById("tFc").classList.remove("sindato");
-      document.getElementById("tResp").querySelector(".val").innerHTML = datos.respiracion + " <small>resp/min</small>";
-      document.getElementById("tFc").querySelector(".val").innerHTML = datos.frecuencia_cardiaca + " <small>lat/min</small>";
+      const tResp = document.getElementById("tResp");
+      const tFc = document.getElementById("tFc");
+      tResp.classList.remove("sindato");
+      tFc.classList.remove("sindato");
+      tResp.querySelector(".val").innerHTML = datos.respiracion + " <small>resp/min</small>";
+      tFc.querySelector(".val").innerHTML = datos.frecuencia_cardiaca + " <small>lat/min</small>";
 
       // Alertas por valor fuera de rango -- disparan solo al cruzar el
       // umbral (edge-triggered), no en cada lectura mientras se mantiene.
+      // La clase "warn" en la tile SI se mantiene todo el tiempo que el
+      // valor siga fuera de rango (a diferencia del popup), para que quede
+      // evidenciado en el dashboard aunque ya hayas cerrado la alerta.
       const respFuera = datos.respiracion < UMBRAL_RESP_MIN || datos.respiracion > UMBRAL_RESP_MAX;
       const fcFuera = datos.frecuencia_cardiaca < UMBRAL_FC_MIN || datos.frecuencia_cardiaca > UMBRAL_FC_MAX;
+      tResp.classList.toggle("warn", respFuera);
+      tFc.classList.toggle("warn", fcFuera);
 
       if (respFuera && !respFueraDeRango) {
         mostrarAlerta("warn", "Respiración fuera de rango", "Se registró una respiración de " + datos.respiracion + " resp/min. Esto es un umbral de referencia, no un diagnóstico.");
