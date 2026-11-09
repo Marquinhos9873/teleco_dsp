@@ -4,7 +4,8 @@ Control local de lo publicado en https://teleco2-senalesysistemas.netlify.app/
 
 ```
 src/                 <- directorio publicado (netlify.toml: publish = "src"), sin build step
-  index.html         <- gemelo digital (simulación, NO tocar su lógica)
+  index.html         <- landing de producto (monitoreo y asistencia)
+  simulador.html     <- gemelo digital (simulación académica, NO tocar su lógica)
   dashboard.html     <- dashboard en vivo (Firebase RTDB)
   assets/            <- favicon y vendor/ (three.js, OrbitControls)
 firmware/
