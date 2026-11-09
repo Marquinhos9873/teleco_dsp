@@ -216,7 +216,7 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
             <div class="tile sindato" id="tCaida"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2.6 17a1.8 1.8 0 0 0 1.55 2.7h15.7A1.8 1.8 0 0 0 21.4 17L13.7 3.9a1.8 1.8 0 0 0-3.1 0z"/></svg>Estado de caída</div><div class="val">—</div></div>
             <div class="tile sindato" id="tPermanencia"><div class="pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>Permanencia estática</div><div class="val">—</div></div>
           </div>
-          <p class="footer-note">VOC pendiente de integrar SHT40/SGP40 reales en el firmware.</p>
+          <p class="footer-note">Ambiente (temperatura, humedad y VOC) medido por el SHT40 y el SGP40 del equipo, cada 20 s.</p>
         </div>
 
         <div class="card">
@@ -413,29 +413,32 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
     });
   }
 
-  // ===================== Ambiente (ruta global, fusionado visualmente con =====================
-  // "Lecturas en vivo" -- sigue siendo un listener aparte porque la ruta en
-  // Firebase tambien es aparte (otro sketch, SHT40/SGP40 todavia sin
-  // integrar). "radarHora" arriba cubre el "ultima actualizacion" de toda
-  // la tarjeta ahora que ambiente y radar comparten el mismo bloque visual.
-  onValue(ref(db, "estado_actual/ambiente"), (snap) => {
-    const datos = snap.val();
+  // ===================== Ambiente (SHT40 + SGP40 del propio equipo) =====================
+  // Desde el firmware v5 el ambiente se publica por equipo, en
+  // /dispositivos/{mac}/estado_actual/ambiente (antes era una ruta global de
+  // otro sketch). El listener se engancha en escucharEquipo(), junto al
+  // resto. Cada campo se pinta solo si vino: si un sensor no respondio, el
+  // firmware no lo publica y la tile se queda en "sin dato", nunca en cero.
+  function pintarAmbiente(datos) {
     if (!datos) return;
 
     const tTemp = document.getElementById("tTemp");
     const tHum = document.getElementById("tHum");
     const tVoc = document.getElementById("tVoc");
 
-    tTemp.classList.remove("sindato");
-    tHum.classList.remove("sindato");
-    tTemp.querySelector(".val").innerHTML = datos.temperatura.toFixed(1) + " <small>°C</small>";
-    tHum.querySelector(".val").innerHTML = datos.humedad.toFixed(1) + " <small>%HR</small>";
-
-    if (datos.voc_idx !== undefined) {
+    if (typeof datos.temperatura === "number") {
+      tTemp.classList.remove("sindato");
+      tTemp.querySelector(".val").innerHTML = datos.temperatura.toFixed(1) + " <small>°C</small>";
+    }
+    if (typeof datos.humedad === "number") {
+      tHum.classList.remove("sindato");
+      tHum.querySelector(".val").innerHTML = datos.humedad.toFixed(1) + " <small>%HR</small>";
+    }
+    if (typeof datos.voc_idx === "number") {
       tVoc.classList.remove("sindato");
       tVoc.querySelector(".val").textContent = datos.voc_idx;
     }
-  });
+  }
 
   // ===================== Control remoto de modo (pestañas FALL / SLEEP) =====================
   // Cada pestaña es, a la vez, el selector de panel (que tiles/grafico se ven)
@@ -696,6 +699,10 @@ table.datos th{color:var(--muted);font-family:var(--f-mono);font-size:.7rem;text
 
     onValue(ref(db, "dispositivos/" + mac + "/estado_actual/radar"), (snap) => {
       pintarLecturaViva(snap.val());
+    });
+
+    onValue(ref(db, "dispositivos/" + mac + "/estado_actual/ambiente"), (snap) => {
+      pintarAmbiente(snap.val());
     });
 
     onValue(query(ref(db, "dispositivos/" + mac + "/historial/radar"), limitToLast(20)), (snap) => {

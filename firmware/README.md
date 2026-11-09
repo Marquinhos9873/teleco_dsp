@@ -18,7 +18,12 @@ historial de iteraciones y poder abrir cualquier versión directamente en el IDE
 - Cada iteración nueva vive en su propia carpeta `ESP32_C1001_Firebase_vN/ESP32_C1001_Firebase_vN.ino`
   (nombre de carpeta y de archivo iguales, como pide el IDE). La versión más alta de `N` es la
   vigente; las anteriores quedan como historial, no se borran.
-- Vigente: `ESP32_C1001_Firebase_v4/` (agrega reconfiguración de WiFi a distancia desde el
-  dashboard, vía `/dispositivos/{mac}/comando/reconfigurar_wifi` — además del botón BOOT físico
-  que ya existía). `v3`/`v2` quedan como historial. La próxima vez que se modifique, se crea
-  `ESP32_C1001_Firebase_v5/`.
+- Vigente: `ESP32_C1001_Firebase_v5/` (integra el **SHT40** y el **SGP40** por I²C —
+  SDA 21 / SCL 22 — y publica ambiente en `/dispositivos/{mac}/estado_actual/ambiente` cada
+  20 s + `/dispositivos/{mac}/historial/ambiente` cada 60 s, con los campos `temperatura`,
+  `humedad`, `voc_idx`, `voc_raw`, `timestamp`). Se construyó sobre `v4`, no sobre `v3`, para
+  conservar la reconfiguración remota de WiFi. Necesita las librerías **Adafruit SHT4x** y
+  **Adafruit SGP40** además de las anteriores. `v4`/`v3`/`v2` quedan como historial. La próxima
+  vez que se modifique, se crea `ESP32_C1001_Firebase_v6/`.
+- `ESP32_C1001_Firebase_v4/` agregó la reconfiguración de WiFi a distancia desde el dashboard
+  (`/dispositivos/{mac}/comando/reconfigurar_wifi`), además del botón BOOT físico.
