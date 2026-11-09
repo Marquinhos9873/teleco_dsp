@@ -10,173 +10,251 @@
 <meta property="og:title" content="C1001 · Monitoreo y asistencia con radar">
 <meta property="og:description" content="Monitoreo no invasivo con radar de 60 GHz: presencia, caídas y estimación de frecuencia cardíaca y respiratoria, sin cámaras.">
 <meta property="og:type" content="website">
-<meta name="theme-color" content="#00383A">
+<meta name="theme-color" content="#04171B">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,600..800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
+/* =====================================================================
+   SISTEMA DE COLOR
+   Cada token de superficie tiene valor en AMBOS modos, y cada texto esta
+   emparejado con su superficie. Antes el bug era justo este: --light y
+   --white se quedaban claros en modo oscuro mientras --ink pasaba a casi
+   blanco -> texto blanco sobre tarjeta blanca (1.15:1, ilegible).
+   Las superficies oscuras usan los tokens --on-deep-*, que valen lo mismo
+   en los dos modos: asi no pueden invertirse nunca.
+   Paleta derivada de las referencias del proyecto (SEA GRADIENT #09606D /
+   #075057 / #D2ECF2 + degradado petroleo oscuro). Todos los pares de
+   texto/fondo verificados >= 4.5:1.
+   ===================================================================== */
 :root{
-  --primary:#00383A; --secondary:#1D696D; --light:#DDEDEE; --accent:#65C9C9; --highlight:#F2935D; --white:#FFFFFF;
-  --bg:#FFFFFF; --surface:#FFFFFF; --sunk:#F3F8F8; --ink:#0E2023; --muted:#52696C; --line:#D8E4E5;
-  --ok:#2E7D4F; --warn:#A86A12; --crit:#C03A28;
+  /* superficies claras */
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface-alt:#E8F4F7;
+  --text-strong:#05232A; --text:#0D343B; --text-soft:#4C6D74;
+  --brand:#09606D; --line:#C9E1E7;
+  --shadow-card:0 12px 36px rgba(4,45,48,.08);
+  --shadow-lift:0 18px 42px rgba(4,45,48,.14);
+
+  /* superficies profundas (hero, proceso, CTA): identicas en ambos modos */
+  --deep:#04171B; --deep-2:#075057; --deep-3:#09606D;
+  --on-deep-strong:#F3FBFC; --on-deep:#D2ECF2; --on-deep-soft:#9DBEC6;
+  --on-deep-brand:#7FDDDA; --line-deep:rgba(210,236,242,.16);
+  --glass:rgba(210,236,242,.07);
+
+  /* accion */
+  --cta:#F2935D; --on-cta:#2B1403;
+
   --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
   --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
-  --r:16px;
+
+  --r-sm:10px; --r:16px; --r-lg:24px; --r-xl:32px;
+  --maxw:1240px;
+  --sp-section:clamp(64px,8vw,116px);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#071213; --surface:#0E2024; --sunk:#0A1B1D; --ink:#E7F1F1; --muted:#8FAAAC; --line:#1E3A3D;
-  --accent:#7FD8D6; --highlight:#F5A878; color-scheme:dark}}
+  --bg:#04171B; --surface:#0B2A31; --surface-alt:#092227;
+  --text-strong:#F3FBFC; --text:#D2ECF2; --text-soft:#9DBEC6;
+  --brand:#7FDDDA; --line:#1E454D;
+  --shadow-card:0 12px 36px rgba(0,0,0,.45);
+  --shadow-lift:0 18px 42px rgba(0,0,0,.55);
+  color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#071213; --surface:#0E2024; --sunk:#0A1B1D; --ink:#E7F1F1; --muted:#8FAAAC; --line:#1E3A3D;
-  --accent:#7FD8D6; --highlight:#F5A878; color-scheme:dark}
+  --bg:#04171B; --surface:#0B2A31; --surface-alt:#092227;
+  --text-strong:#F3FBFC; --text:#D2ECF2; --text-soft:#9DBEC6;
+  --brand:#7FDDDA; --line:#1E454D;
+  --shadow-card:0 12px 36px rgba(0,0,0,.45);
+  --shadow-lift:0 18px 42px rgba(0,0,0,.55);
+  color-scheme:dark}
 
+/* Regla defensiva: una clase que fija display empata en especificidad con
+   [hidden] y puede ganarle. Va temprano, a proposito. */
 [hidden]{display:none!important}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.55}
-h1,h2,h3{font-family:var(--f-display);font-stretch:80%;line-height:1.08;margin:0;text-wrap:balance}
-p{margin:0}
-.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.09em;text-transform:uppercase;color:var(--secondary)}
-.muted{color:var(--muted)}
-:focus-visible{outline:2px solid var(--secondary);outline-offset:2px}
-.skip-link{position:fixed;top:8px;left:8px;z-index:100;padding:10px 16px;background:var(--primary);color:#fff;transform:translateY(-160%);border-radius:8px}
-.skip-link:focus{transform:translateY(0)}
-.btn-cta{font:inherit;font-weight:700;font-size:.95rem;border-radius:10px;padding:13px 22px;text-decoration:none;display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;cursor:pointer}
-.btn-cta.primary{background:var(--highlight);color:#2B1403}
-.btn-cta.primary:hover{background:#fff;color:var(--primary)}
-.btn-cta.secondary{background:transparent;border-color:rgba(255,255,255,.35);color:#fff}
-.btn-cta.secondary:hover{border-color:#fff}
-.btn-cta.outline{background:transparent;border-color:var(--line);color:var(--ink)}
-.btn-cta.outline:hover{border-color:var(--secondary);color:var(--secondary)}
 
-/* Nav */
-.site-nav{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--line)}
-.nav-row{max-width:1320px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:14px}
-.brand-mini{display:flex;align-items:center;gap:9px;font-family:var(--f-display);font-weight:800;font-stretch:85%;font-size:1.05rem;text-decoration:none;color:var(--ink)}
-.brand-mini .dot{width:10px;height:10px;border-radius:50%;background:var(--secondary);box-shadow:0 0 0 4px var(--light);flex:none}
-.nav-links{display:flex;gap:26px;align-items:center}
-.nav-links a{color:var(--ink);text-decoration:none;font-size:.9rem}
-.nav-links a:hover{color:var(--secondary)}
-.nav-actions{display:flex;align-items:center;gap:10px}
-.theme-toggle{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);cursor:pointer;flex:none}
-.theme-toggle:hover{border-color:var(--secondary)}
-.theme-toggle .icon-moon{display:none}
-:root[data-theme="dark"] .theme-toggle .icon-sun{display:none}
-:root[data-theme="dark"] .theme-toggle .icon-moon{display:block}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .theme-toggle .icon-sun{display:none}:root:not([data-theme="light"]) .theme-toggle .icon-moon{display:block}}
-.nav-ingresar{font-size:.9rem;color:var(--ink);text-decoration:none}
-.nav-ingresar:hover{color:var(--secondary)}
-.nav-burger{display:none;width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--sunk);align-items:center;justify-content:center;cursor:pointer}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--f-body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--f-display);font-stretch:82%;line-height:1.04;margin:0;color:var(--text-strong);text-wrap:balance}
+p{margin:0}
+img{max-width:100%}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:3px;border-radius:4px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding-inline:22px}
+.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);display:block}
+.skip-link{position:fixed;top:8px;left:8px;z-index:100;padding:10px 16px;background:var(--deep);color:var(--on-deep-strong);transform:translateY(-200%);border-radius:8px}
+.skip-link:focus{transform:translateY(0)}
+
+/* ---------- Botones ---------- */
+.btn{font:inherit;font-weight:700;font-size:.95rem;border-radius:999px;padding:14px 26px;text-decoration:none;display:inline-flex;align-items:center;gap:9px;border:1px solid transparent;cursor:pointer;transition:transform .2s,background .2s,border-color .2s,color .2s}
+.btn:hover{transform:translateY(-1px)}
+.btn-cta{background:var(--cta);color:var(--on-cta)}
+.btn-cta:hover{background:#FFB184}
+.btn-ghost-deep{background:transparent;border-color:var(--line-deep);color:var(--on-deep-strong)}
+.btn-ghost-deep:hover{border-color:var(--on-deep);background:var(--glass)}
+.btn-ghost{background:transparent;border-color:var(--line);color:var(--text-strong)}
+.btn-ghost:hover{border-color:var(--brand);color:var(--brand)}
+.btn-sm{padding:10px 20px;font-size:.88rem}
+@media(prefers-reduced-motion:reduce){.btn:hover{transform:none}}
+
+/* ---------- Nav (vidrio sobre el hero) ---------- */
+.site-nav{position:sticky;top:0;z-index:40;background:rgba(4,23,27,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line-deep)}
+.nav-row{max-width:var(--maxw);margin:0 auto;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-weight:800;font-stretch:86%;font-size:1.1rem;color:var(--on-deep-strong);text-decoration:none;letter-spacing:.01em}
+.brand .mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(145deg,var(--deep-3),var(--deep-2));display:grid;place-items:center;flex:none;border:1px solid var(--line-deep)}
+.brand .mark svg{width:18px;height:18px;color:var(--on-deep-brand)}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-links a{color:var(--on-deep);text-decoration:none;font-size:.92rem;transition:color .2s}
+.nav-links a:hover{color:var(--on-deep-strong)}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:999px;border:1px solid var(--line-deep);background:var(--glass);color:var(--on-deep);cursor:pointer;flex:none;transition:border-color .2s,color .2s}
+.icon-btn:hover{border-color:var(--on-deep);color:var(--on-deep-strong)}
+.icon-moon{display:none}
+:root[data-theme="dark"] .icon-sun{display:none}
+:root[data-theme="dark"] .icon-moon{display:block}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .icon-sun{display:none}:root:not([data-theme="light"]) .icon-moon{display:block}}
+.nav-ingresar{color:var(--on-deep);text-decoration:none;font-size:.92rem}
+.nav-ingresar:hover{color:var(--on-deep-strong)}
+.nav-burger{display:none}
 .nav-panel{display:none}
-@media (max-width:860px){
+@media (max-width:900px){
   .nav-links{display:none}
-  .nav-burger{display:flex}
-  .nav-actions .nav-ingresar{display:none}
-  .nav-panel{position:fixed;inset:0;top:65px;background:var(--surface);z-index:29;padding:22px 20px;display:flex;flex-direction:column;gap:18px}
-  .nav-panel a{color:var(--ink);text-decoration:none;font-size:1.05rem}
-  .nav-panel .btn-cta{align-self:flex-start}
+  .nav-ingresar{display:none}
+  .nav-burger{display:inline-flex}
+  .nav-panel{position:fixed;inset:66px 0 0;background:var(--deep);z-index:39;padding:28px 22px;display:flex;flex-direction:column;gap:22px;border-top:1px solid var(--line-deep)}
+  .nav-panel a{color:var(--on-deep-strong);text-decoration:none;font-size:1.15rem;font-family:var(--f-display);font-stretch:86%}
+  .nav-panel .btn{align-self:flex-start}
 }
 
-/* Hero */
-.hero{background:var(--primary);padding:clamp(44px,7vw,80px) 20px}
-.hero-grid{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:1.1fr .9fr;gap:30px 48px;align-items:center}
-@media(max-width:860px){.hero-grid{grid-template-columns:1fr}}
-.hero-inner{max-width:50ch}
-.hero-inner .eyebrow{color:var(--accent)}
-.hero-title{color:#fff;font-weight:300;font-size:clamp(2.1rem,4.6vw,3.4rem);line-height:1.08;letter-spacing:-.01em;margin:14px 0 20px}
-.hero-title b{font-weight:800}
-.hero-sub{font-size:1.05rem;color:rgba(255,255,255,.78);max-width:52ch;margin-bottom:28px}
-.hero-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-.hero-scroll{font-size:.85rem;color:rgba(255,255,255,.65);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
-.hero-scroll:hover{color:#fff}
-.resaltado{font-weight:800}
+/* ---------- Superficie profunda + grano ---------- */
+.deep{position:relative;background:
+   radial-gradient(1100px 620px at 12% -10%, #0E6B74 0%, transparent 62%),
+   radial-gradient(900px 560px at 92% 8%, #0A3F4E 0%, transparent 60%),
+   linear-gradient(170deg, #062229 0%, var(--deep) 58%, #031215 100%);
+  color:var(--on-deep);overflow:hidden;isolation:isolate}
+/* Grano fino encima del degradado, igual que la referencia. */
+.deep::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay}
+.deep h1,.deep h2,.deep h3{color:var(--on-deep-strong)}
+.deep .eyebrow{color:var(--on-deep-brand)}
 
-.hero-visual{position:relative;min-height:230px;display:flex;align-items:center;justify-content:center}
-.hero-pulse{position:absolute;inset:0;margin:auto;width:80%;height:80%;max-width:310px;max-height:310px;opacity:.55;pointer-events:none}
-.hero-pulse circle{fill:none;stroke:var(--accent);stroke-width:1.1}
-.hero-pulse .r1,.hero-pulse .r2,.hero-pulse .r3{animation:pulseRing 4.4s ease-out infinite}
-.hero-pulse .r2{animation-delay:1.47s}
-.hero-pulse .r3{animation-delay:2.93s}
-@keyframes pulseRing{0%{r:18;stroke-opacity:.85}100%{r:140;stroke-opacity:0}}
-@media(prefers-reduced-motion:reduce){.hero-pulse .r1,.hero-pulse .r2,.hero-pulse .r3{animation:none;r:90;stroke-opacity:.16}}
-.hero-product{position:relative;z-index:1;width:100%;max-width:420px}
-.hero-product img{width:100%;height:auto;display:block;filter:drop-shadow(0 30px 40px rgba(0,0,0,.45))}
-.hero-status{position:absolute;left:-10px;bottom:14px;z-index:2;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:8px;box-shadow:0 14px 30px rgba(0,0,0,.35)}
-.hero-status .dot-live{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
-.hero-status span{font-family:var(--f-mono);font-size:.68rem;color:var(--muted)}
-.hero-status b{font-family:var(--f-display);font-weight:700;font-size:.85rem;white-space:nowrap}
-.hero-caption{font-size:.68rem;color:rgba(255,255,255,.5);text-align:center;margin-top:10px}
+/* ---------- Hero ---------- */
+.hero{padding:clamp(52px,8vw,104px) 0 clamp(60px,9vw,116px)}
+.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:clamp(32px,5vw,64px);align-items:center}
+@media(max-width:940px){.hero-grid{grid-template-columns:1fr;gap:44px}}
+.hero h1{font-size:clamp(2.5rem,6vw,4.6rem);font-weight:500;letter-spacing:-.025em;margin:18px 0 22px}
+.hero h1 b{font-weight:800}
+.hero-sub{font-size:clamp(1.02rem,1.5vw,1.18rem);color:var(--on-deep);max-width:50ch;margin-bottom:34px}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap}
+.hero-nota{margin-top:20px;font-size:.84rem;color:var(--on-deep-soft);display:flex;align-items:center;gap:8px}
+.hero-nota svg{width:15px;height:15px;flex:none;color:var(--on-deep-brand)}
 
-/* Secciones genéricas */
-.section{padding:clamp(48px,7vw,88px) 20px}
-.section-light{background:var(--light)}
-.section-white{background:var(--white)}
-.section-dark{background:var(--primary)}
-.section-inner{max-width:1320px;margin:0 auto}
-.section-head{max-width:62ch;margin-bottom:clamp(28px,4vw,44px)}
-.section-head h2{font-size:clamp(1.6rem,3vw,2.3rem);font-weight:300;margin:10px 0 12px;letter-spacing:-.01em}
-.section-head h2 b{font-weight:800}
-.section-head p{color:var(--muted);font-size:1rem}
-.section-dark .section-head p{color:rgba(255,255,255,.72)}
-.section-dark .eyebrow{color:var(--accent)}
-.section-dark .section-head h2{color:#fff}
+.hero-visual{position:relative;display:flex;align-items:center;justify-content:center;min-height:300px}
+.pulse{position:absolute;inset:0;margin:auto;width:min(94%,470px);aspect-ratio:1;pointer-events:none;opacity:.5}
+.pulse circle{fill:none;stroke:var(--on-deep-brand);stroke-width:1}
+.pulse .r1,.pulse .r2,.pulse .r3{animation:ring 5s ease-out infinite}
+.pulse .r2{animation-delay:1.66s}
+.pulse .r3{animation-delay:3.33s}
+@keyframes ring{0%{r:16;stroke-opacity:.75}100%{r:148;stroke-opacity:0}}
+@media(prefers-reduced-motion:reduce){.pulse .r1,.pulse .r2,.pulse .r3{animation:none;r:96;stroke-opacity:.18}}
+.hero-prod{position:relative;z-index:1;width:100%;max-width:490px;filter:drop-shadow(0 34px 48px rgba(0,0,0,.55))}
+.hero-chip{position:absolute;z-index:2;left:2%;bottom:12%;display:flex;align-items:center;gap:10px;padding:10px 15px;border-radius:999px;
+  background:rgba(6,30,35,.82);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line-deep);box-shadow:var(--shadow-lift)}
+.hero-chip .dot{width:8px;height:8px;border-radius:50%;background:#4ADE80;flex:none;box-shadow:0 0 0 4px rgba(74,222,128,.18)}
+.hero-chip span{font-family:var(--f-mono);font-size:.68rem;color:var(--on-deep-soft);letter-spacing:.06em;text-transform:uppercase}
+.hero-chip b{font-family:var(--f-display);font-size:.92rem;color:var(--on-deep-strong)}
+.hero-pie{margin-top:16px;text-align:center;font-size:.74rem;color:var(--on-deep-soft)}
 
-/* Arquitectura: tarjetas de componentes */
-.arch-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
-@media(max-width:1020px){.arch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.arch-grid{grid-template-columns:1fr}}
-.arch-card{background:var(--white);border:1px solid var(--line);border-radius:var(--r);padding:22px;display:grid;gap:12px;align-content:start;box-shadow:0 10px 30px rgba(0,56,58,.06)}
-.arch-icon{width:46px;height:46px;border-radius:12px;background:var(--light);display:grid;place-items:center;color:var(--secondary)}
-.arch-icon svg{width:24px;height:24px}
-.arch-card h3{font-size:1.05rem}
-.arch-card .fn{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--secondary)}
-.arch-card p{font-size:.88rem;color:var(--muted)}
-.state{display:inline-flex;width:fit-content;font-family:var(--f-mono);font-size:.68rem;padding:3px 9px;border-radius:99px;border:1px solid currentColor}
-.state.probado{color:var(--ok)}
+/* ---------- Franja de capacidades ---------- */
+.capas{border-top:1px solid var(--line-deep);padding:clamp(28px,4vw,44px) 0}
+.capas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+@media(max-width:900px){.capas-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.capas-grid{grid-template-columns:1fr}}
+.capa{display:flex;gap:13px;align-items:flex-start}
+.capa svg{width:21px;height:21px;flex:none;color:var(--on-deep-brand);margin-top:3px}
+.capa b{display:block;font-family:var(--f-display);font-stretch:86%;font-size:1rem;color:var(--on-deep-strong);margin-bottom:2px}
+.capa span{font-size:.86rem;color:var(--on-deep-soft);line-height:1.45}
 
-/* Cómo funciona */
-.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-@media(max-width:860px){.how-grid{grid-template-columns:1fr}}
-.how-card{background:#fff;border-radius:var(--r);padding:26px;display:grid;gap:10px;align-content:start;color:var(--ink)}
-.how-card .num{font-family:var(--f-display);font-weight:800;font-size:2.1rem;line-height:1;color:var(--secondary)}
-.how-card h3{font-size:1.05rem}
-.how-card p{font-size:.9rem;color:var(--muted)}
+/* ---------- Secciones claras ---------- */
+.sec{padding:var(--sp-section) 0}
+.sec-alt{background:var(--surface-alt)}
+.sec-head{max-width:60ch;margin-bottom:clamp(34px,5vw,56px)}
+.sec-head h2{font-size:clamp(1.9rem,4vw,3.1rem);font-weight:500;letter-spacing:-.022em;margin:14px 0 16px}
+.sec-head h2 b{font-weight:800}
+.sec-head p{color:var(--text-soft);font-size:1.04rem;max-width:58ch}
 
-/* Especificaciones */
-.spec-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-@media(max-width:760px){.spec-grid{grid-template-columns:1fr}}
-#especificaciones{background:#fff}
-#especificaciones .eyebrow{color:#000}
-#especificaciones .section-head p,#especificaciones .section-head h2{color:#000}
-.spec-card{background:#fff;border:1px solid #000;border-radius:var(--r);padding:20px 22px}
-.spec-card h3{font-size:.92rem;color:#000;margin-bottom:12px;font-weight:800}
-.spec-card dl{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:0;font-size:.86rem}
-.spec-card dt{color:#444;font-family:var(--f-mono);font-size:.78rem}
-.spec-card dd{margin:0;font-weight:600;color:#000}
-.spec-note{font-size:.8rem;color:#444;margin-top:18px;max-width:72ch}
+/* ---------- Arquitectura ---------- */
+.arq{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+@media(max-width:1000px){.arq{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.arq{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:26px;display:grid;gap:13px;align-content:start;box-shadow:var(--shadow-card);transition:transform .25s,box-shadow .25s}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lift)}
+@media(prefers-reduced-motion:reduce){.card:hover{transform:none}}
+/* El radar es el diferenciador del producto: ocupa el doble y lleva el render. */
+.card.destacada{grid-column:span 2;grid-template-columns:1.25fr .75fr;align-items:center;gap:24px;background:linear-gradient(150deg,var(--deep) 0%,#0A353E 100%);border-color:transparent;color:var(--on-deep)}
+.card.destacada h3{color:var(--on-deep-strong)}
+.card.destacada p{color:var(--on-deep)}
+.card.destacada .fn{color:var(--on-deep-brand)}
+.card.destacada .ico{background:var(--glass);border-color:var(--line-deep);color:var(--on-deep-brand)}
+.card.destacada .estado{color:#86EFAC;border-color:currentColor}
+.card-txt{display:grid;gap:13px;align-content:start}
+.card-img{display:flex;justify-content:center}
+.card-img img{width:100%;max-width:230px;filter:drop-shadow(0 16px 26px rgba(0,0,0,.5))}
+@media(max-width:1000px){.card.destacada{grid-column:span 2}}
+@media(max-width:620px){.card.destacada{grid-column:span 1;grid-template-columns:1fr}.card-img{order:-1}}
+.ico{width:46px;height:46px;border-radius:13px;background:var(--surface-alt);border:1px solid var(--line);display:grid;place-items:center;color:var(--brand)}
+.ico svg{width:23px;height:23px}
+.card h3{font-size:1.18rem}
+.card .fn{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brand)}
+.card p{font-size:.93rem;color:var(--text-soft);line-height:1.6}
+.card.destacada p{color:var(--on-deep)}
+.estado{display:inline-flex;align-items:center;gap:6px;width:fit-content;font-family:var(--f-mono);font-size:.7rem;padding:4px 11px;border-radius:999px;border:1px solid currentColor;color:#15803D}
+:root[data-theme="dark"] .estado{color:#86EFAC}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .estado{color:#86EFAC}}
+.estado::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
 
-/* CTA final */
-.cta-final{background:var(--primary);border-radius:24px;padding:clamp(32px,6vw,56px);display:grid;gap:18px;text-align:center;justify-content:center;max-width:900px;margin:0 auto}
-.cta-final h2{color:#fff;font-size:clamp(1.5rem,2.8vw,2.1rem);font-weight:300;max-width:34ch;margin:0 auto}
-.cta-final h2 b{font-weight:800}
-.cta-final p{color:rgba(255,255,255,.75);max-width:52ch;margin:0 auto;font-size:.96rem}
-.cta-final .hero-ctas{justify-content:center;margin:0}
-.cta-sim{font-size:.86rem;color:rgba(255,255,255,.65);text-decoration:none}
-.cta-sim:hover{color:#fff}
+/* ---------- Cómo funciona (superficie profunda) ---------- */
+.pasos{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;position:relative}
+@media(max-width:900px){.pasos{grid-template-columns:1fr}}
+.paso{background:var(--glass);border:1px solid var(--line-deep);border-radius:var(--r-lg);padding:30px;display:grid;gap:12px;align-content:start;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.paso .n{font-family:var(--f-mono);font-size:.8rem;color:var(--on-deep-brand);letter-spacing:.12em}
+.paso h3{font-size:1.24rem}
+.paso p{font-size:.94rem;color:var(--on-deep);line-height:1.6}
 
-/* Footer */
-footer{background:var(--white);border-top:1px solid var(--line);padding:40px 20px 28px}
-.foot-inner{max-width:1320px;margin:0 auto;display:grid;grid-template-columns:1.2fr 1fr;gap:32px}
-@media(max-width:760px){.foot-inner{grid-template-columns:1fr}}
-.foot-brand{display:grid;gap:12px;max-width:42ch}
-.foot-brand .brand-mini{color:var(--ink)}
-.foot-brand p{font-size:.95rem;color:var(--ink);line-height:1.5}
-.foot-links{display:flex;flex-wrap:wrap;gap:18px 26px;align-content:start;justify-content:flex-end}
-.foot-links a{font-size:.85rem;color:var(--ink);text-decoration:none}
-.foot-links a:hover{color:var(--secondary)}
-@media(max-width:760px){.foot-links{justify-content:flex-start}}
-.foot-bottom{max-width:1320px;margin:28px auto 0;padding-top:18px;border-top:1px solid var(--line);font-size:.78rem;color:var(--muted)}
+/* ---------- Especificaciones ---------- */
+.specs{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+@media(max-width:800px){.specs{grid-template-columns:1fr}}
+.spec{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px 26px}
+.spec h3{font-size:.82rem;font-family:var(--f-mono);font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.spec dl{display:grid;grid-template-columns:auto 1fr;gap:11px 18px;margin:0;font-size:.9rem;align-items:baseline}
+.spec dt{color:var(--text-soft);font-size:.84rem}
+.spec dd{margin:0;font-weight:700;color:var(--text-strong);text-align:right;font-variant-numeric:tabular-nums}
+.spec-nota{margin-top:26px;font-size:.88rem;color:var(--text-soft);max-width:70ch;padding-left:16px;border-left:2px solid var(--brand)}
+
+/* ---------- CTA final ---------- */
+.cierre{padding:var(--sp-section) 0}
+.cierre-in{text-align:center;max-width:62ch;margin:0 auto;display:grid;gap:20px;justify-items:center}
+.cierre h2{font-size:clamp(1.9rem,4vw,3rem);font-weight:500;letter-spacing:-.022em}
+.cierre h2 b{font-weight:800}
+.cierre p{color:var(--on-deep);font-size:1.04rem}
+.cierre-links{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+
+/* ---------- Footer ---------- */
+footer{background:var(--surface);border-top:1px solid var(--line);padding:56px 0 30px}
+.foot-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:40px}
+@media(max-width:800px){.foot-grid{grid-template-columns:1fr;gap:28px}}
+.foot-brand{display:grid;gap:14px;max-width:46ch;align-content:start}
+.foot-brand .brand{color:var(--text-strong)}
+.foot-brand .brand .mark{border-color:transparent}
+.foot-brand p{font-size:.96rem;color:var(--text);line-height:1.6}
+.foot-aviso{font-size:.88rem;color:var(--text-soft);padding-left:14px;border-left:2px solid var(--brand)}
+.foot-links{display:flex;flex-wrap:wrap;gap:14px 30px;align-content:start;justify-content:flex-end}
+@media(max-width:800px){.foot-links{justify-content:flex-start}}
+.foot-links a{font-size:.92rem;color:var(--text);text-decoration:none}
+.foot-links a:hover{color:var(--brand)}
+.foot-bottom{margin-top:34px;padding-top:20px;border-top:1px solid var(--line);font-size:.82rem;color:var(--text-soft)}
 </style>
 </head>
 <body>
@@ -184,198 +262,260 @@ footer{background:var(--white);border-top:1px solid var(--line);padding:40px 20p
 
 <header class="site-nav">
   <div class="nav-row">
-    <a class="brand-mini" href="#contenido"><span class="dot" aria-hidden="true"></span> C1001</a>
+    <a class="brand" href="#contenido">
+      <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></span>
+      C1001
+    </a>
     <nav class="nav-links" aria-label="Secciones">
+      <a href="#capacidades">Qué detecta</a>
       <a href="#arquitectura">Tecnología</a>
       <a href="#como-funciona">Cómo funciona</a>
       <a href="#especificaciones">Especificaciones</a>
       <a href="simulador.html">Simulador</a>
     </nav>
     <div class="nav-actions">
-      <button type="button" class="theme-toggle" id="themeToggle" aria-pressed="false" aria-label="Cambiar a modo nocturno">
-        <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-        <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <button type="button" class="icon-btn" id="themeToggle" aria-pressed="false" aria-label="Cambiar a modo nocturno">
+        <svg class="icon-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
       <a class="nav-ingresar" href="login.html">Ingresar</a>
-      <a class="btn-cta primary" style="padding:9px 18px;font-size:.88rem" href="registro.html">Crear cuenta</a>
-      <button type="button" class="nav-burger" id="navBurger" aria-expanded="false" aria-controls="navPanel" aria-label="Abrir menú">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      <a class="btn btn-cta btn-sm" href="registro.html">Crear cuenta</a>
+      <button type="button" class="icon-btn nav-burger" id="navBurger" aria-expanded="false" aria-controls="navPanel" aria-label="Abrir menú">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
     </div>
   </div>
   <nav class="nav-panel" id="navPanel" hidden aria-label="Secciones (móvil)">
+    <a href="#capacidades">Qué detecta</a>
     <a href="#arquitectura">Tecnología</a>
     <a href="#como-funciona">Cómo funciona</a>
     <a href="#especificaciones">Especificaciones</a>
     <a href="simulador.html">Simulador</a>
     <a href="login.html">Ingresar</a>
-    <a class="btn-cta primary" href="registro.html">Crear cuenta</a>
+    <a class="btn btn-cta" href="registro.html">Crear cuenta</a>
   </nav>
 </header>
 
 <main id="contenido" tabindex="-1">
 
-<section class="hero">
-  <div class="hero-grid">
-    <div class="hero-inner">
+<section class="deep hero">
+  <div class="wrap hero-grid">
+    <div>
       <span class="eyebrow">Radar de 60 GHz + sensores ambientales</span>
-      <h1 class="hero-title">Monitoreo inteligente.<br><b>Tecnología que <span class="resaltado">acompaña</span>.</b></h1>
-      <p class="hero-sub">Un sistema de monitoreo y asistencia que detecta presencia, avisa si hay una caída y te ayuda a estar al tanto de cómo duerme tu familiar — sin cámaras ni contacto físico.</p>
+      <h1>Monitoreo inteligente.<br><b>Tecnología que acompaña.</b></h1>
+      <p class="hero-sub">Detecta presencia, avisa si hay una caída y te deja ver cómo está tu familiar en todo momento — con ondas de radar, sin cámaras y sin que tenga que usar nada encima.</p>
       <div class="hero-ctas">
-        <a class="btn-cta primary" href="registro.html">Crear cuenta</a>
-        <a class="btn-cta secondary" href="#como-funciona">Ver cómo funciona ↓</a>
+        <a class="btn btn-cta" href="registro.html">Crear cuenta</a>
+        <a class="btn btn-ghost-deep" href="#como-funciona">Ver cómo funciona</a>
       </div>
-      <a class="hero-scroll" href="#arquitectura">Explorar la tecnología →</a>
+      <p class="hero-nota">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2a5 5 0 0 1 5 5v10l-5 3-5-3V7a5 5 0 0 1 5-5z"/><path d="M9 11l2 2 4-4"/></svg>
+        Sin cámara ni micrófono: el radar no capta imagen ni audio.
+      </p>
     </div>
 
-    <div class="hero-visual">
-      <svg class="hero-pulse" viewBox="0 0 300 300" aria-hidden="true">
-        <circle class="r1" cx="150" cy="150" r="18"/>
-        <circle class="r2" cx="150" cy="150" r="18"/>
-        <circle class="r3" cx="150" cy="150" r="18"/>
-      </svg>
-      <div>
-        <div class="hero-product">
-          <img src="/assets/enclosure-c1001.png" alt="Carcasa del equipo C1001, con la ventana del radar y las rejillas de ventilación" width="900" height="798">
-          <div class="hero-status" aria-hidden="true"><span class="dot-live"></span><span>Presencia</span><b>Presente</b></div>
+    <div>
+      <div class="hero-visual">
+        <svg class="pulse" viewBox="0 0 320 320" aria-hidden="true">
+          <circle class="r1" cx="160" cy="160" r="16"/>
+          <circle class="r2" cx="160" cy="160" r="16"/>
+          <circle class="r3" cx="160" cy="160" r="16"/>
+        </svg>
+        <img class="hero-prod" src="/assets/enclosure-hero.png" width="1000" height="883"
+             alt="Carcasa del equipo C1001: ventana central del radar, rejillas de ventilación y tornillos de montaje en las esquinas.">
+        <div class="hero-chip" aria-hidden="true">
+          <span class="dot"></span>
+          <div><span>Presencia</span><br><b>Presente</b></div>
         </div>
-        <p class="hero-caption">Modelo 3D real del equipo, generado a partir del diseño CAD</p>
+      </div>
+      <p class="hero-pie">Modelo real del equipo, generado desde el diseño CAD. Valor de ejemplo, no una lectura en curso.</p>
+    </div>
+  </div>
+
+  <div class="wrap capas" id="capacidades">
+    <div class="capas-grid">
+      <div class="capa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="7" r="3.2"/><path d="M5.5 20.5a6.5 6.5 0 0 1 13 0"/></svg>
+        <div><b>Presencia</b><span>Sabe si hay alguien en la habitación y si está quieto o en movimiento.</span></div>
+      </div>
+      <div class="capa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3v7"/><path d="M12 13.5v.01"/><path d="M4.5 19.5h15L12 5.5z"/></svg>
+        <div><b>Caídas</b><span>Detecta un evento de caída y dispara una alerta en pantalla al instante.</span></div>
+      </div>
+      <div class="capa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12h4l2-5 3 10 2.5-7 1.8 4H22"/></svg>
+        <div><b>Respiración y pulso</b><span>Estimación sin contacto mientras la persona descansa.</span></div>
+      </div>
+      <div class="capa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 3c2.6 3.5 4.3 6.1 4.3 8.6a4.3 4.3 0 0 1-8.6 0C7.7 9.1 9.4 6.5 12 3z"/></svg>
+        <div><b>Ambiente</b><span>Temperatura, humedad y calidad del aire del cuarto.</span></div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="section section-light" id="arquitectura">
-  <div class="section-inner">
-    <div class="section-head">
+<section class="sec sec-alt" id="arquitectura">
+  <div class="wrap">
+    <div class="sec-head">
       <span class="eyebrow">Qué hay adentro del equipo</span>
-      <h2>Cuatro sensores, <b>una sola mirada</b> del entorno.</h2>
-      <p>Un radar y tres sensores trabajan juntos para armar una idea completa de cómo está tu familiar y su cuarto, en todo momento.</p>
+      <h2>Un radar y tres sensores, <b>una sola mirada</b> del cuarto.</h2>
+      <p>Cada pieza cumple una función concreta, y todas publican al mismo panel en vivo.</p>
     </div>
-    <div class="arch-grid">
-      <div class="arch-card">
-        <div class="arch-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></div>
-        <span class="fn">Radar</span>
-        <h3>Presencia y caídas</h3>
-        <p>Detecta si hay alguien en la habitación, identifica una caída y estima la frecuencia cardíaca y respiratoria — todo con ondas de radar, sin cámara ni micrófono.</p>
-        <span class="state probado">Integrado</span>
-      </div>
-      <div class="arch-card">
-        <div class="arch-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg></div>
-        <span class="fn">Procesador</span>
-        <h3>El cerebro del equipo</h3>
-        <p>Recoge las lecturas de todos los sensores y las envía en tiempo real para que las veas desde tu celular o computadora.</p>
-        <span class="state probado">Integrado</span>
-      </div>
-      <div class="arch-card">
-        <div class="arch-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 2c3 4 5 7 5 10a5 5 0 0 1-10 0c0-3 2-6 5-10z"/></svg></div>
+
+    <div class="arq">
+      <article class="card destacada">
+        <div class="card-txt">
+          <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></div>
+          <span class="fn">El corazón del equipo</span>
+          <h3>Radar de 60 GHz</h3>
+          <p>Es lo que hace distinto al C1001: ve a través de la oscuridad y de la ropa, detecta una caída, y estima la respiración y el pulso por el movimiento del tórax — todo sin cámara, sin micrófono y sin que la persona lleve nada puesto.</p>
+          <span class="estado">Probado en hardware real</span>
+        </div>
+        <div class="card-img">
+          <img src="/assets/enclosure-iso.png" width="700" height="870" alt="Vista en perspectiva de la carcasa del C1001.">
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></svg></div>
+        <span class="fn">Procesamiento</span>
+        <h3>El cerebro</h3>
+        <p>Reúne lo que miden todos los sensores y lo envía en vivo, por tu WiFi, para que lo veas desde el celular o la computadora.</p>
+        <span class="estado">Probado en hardware real</span>
+      </article>
+
+      <article class="card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3c2.6 3.5 4.3 6.1 4.3 8.6a4.3 4.3 0 0 1-8.6 0C7.7 9.1 9.4 6.5 12 3z"/></svg></div>
         <span class="fn">Sensor ambiental</span>
         <h3>Temperatura y humedad</h3>
-        <p>Avisa si el cuarto está demasiado frío, caluroso o húmedo, para ayudar a mantener un ambiente cómodo.</p>
-        <span class="state probado">Integrado</span>
-      </div>
-      <div class="arch-card">
-        <div class="arch-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12c2-4 4-6 6-6s3 3 3 6-1 6-3 6-4-2-6-6z"/><path d="M12 8c2-2 4-3 5-2s1 3-1 5-4 3-5 2-1-3 1-5z"/></svg></div>
+        <p>Avisa si el cuarto quedó demasiado frío, caluroso o húmedo, para mantener un ambiente cómodo.</p>
+        <span class="estado">Integrado</span>
+      </article>
+
+      <article class="card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12c2-4 4-6 6-6s3 3 3 6-1 6-3 6-4-2-6-6z"/><path d="M12 8c2-2 4-3 5-2s1 3-1 5-4 3-5 2-1-3 1-5z"/></svg></div>
         <span class="fn">Sensor ambiental</span>
         <h3>Calidad del aire</h3>
-        <p>Mide la calidad del aire del ambiente y avisa cuando conviene ventilar el cuarto.</p>
-        <span class="state probado">Integrado</span>
-      </div>
+        <p>Mide la calidad del aire del ambiente y te deja saber cuándo conviene ventilar.</p>
+        <span class="estado">Integrado</span>
+      </article>
     </div>
   </div>
 </section>
 
-<section class="section section-dark" id="como-funciona">
-  <div class="section-inner">
-    <div class="section-head">
+<section class="deep sec" id="como-funciona">
+  <div class="wrap">
+    <div class="sec-head">
       <span class="eyebrow">Cómo funciona</span>
-      <h2>De la señal de radar <b>a la alerta en pantalla.</b></h2>
-      <p>Tres etapas continuas, sin que la persona monitoreada tenga que hacer nada.</p>
+      <h2>De la señal de radar <b>a la alerta en tu pantalla.</b></h2>
+      <p>Tres etapas que corren solas, sin que tu familiar tenga que hacer nada.</p>
     </div>
-    <div class="how-grid">
-      <div class="how-card"><span class="num">01</span><h3>Sensado</h3><p>El radar y los sensores ambientales toman lecturas del entorno de forma continua, sin contacto físico ni registro de imagen o sonido.</p></div>
-      <div class="how-card"><span class="num">02</span><h3>Procesamiento</h3><p>El ESP32 recibe esas lecturas, aplica el modo de operación activo (FALL o SLEEP) y las empaqueta para enviarlas a la base de datos.</p></div>
-      <div class="how-card"><span class="num">03</span><h3>Monitoreo y alertas</h3><p>Los datos llegan a Firebase y se muestran en el dashboard en tiempo real; una caída o un valor fuera de rango dispara una alerta visual y sonora.</p></div>
+    <div class="pasos">
+      <article class="paso">
+        <span class="n">01</span>
+        <h3>Mide</h3>
+        <p>El radar y los sensores leen el cuarto de forma continua: presencia, movimiento, respiración, pulso, temperatura, humedad y calidad del aire.</p>
+      </article>
+      <article class="paso">
+        <span class="n">02</span>
+        <h3>Procesa</h3>
+        <p>El equipo interpreta esas lecturas según el modo activo — vigilancia de caídas o seguimiento del descanso — y las envía cada pocos segundos.</p>
+      </article>
+      <article class="paso">
+        <span class="n">03</span>
+        <h3>Avisa</h3>
+        <p>Vos lo ves en el panel en vivo desde cualquier navegador. Si hay una caída o un valor fuera de rango, salta una alerta en pantalla con sonido.</p>
+      </article>
     </div>
   </div>
 </section>
 
-<section class="section section-white" id="especificaciones">
-  <div class="section-inner">
-    <div class="section-head">
+<section class="sec" id="especificaciones">
+  <div class="wrap">
+    <div class="sec-head">
       <span class="eyebrow">Especificaciones técnicas</span>
-      <h2>Datos verificados <b>del hardware y el firmware</b> vigente.</h2>
-      <p>Cifras tomadas directamente del firmware y la documentación del proyecto, no estimaciones de marketing.</p>
+      <h2>Los números, <b>tal como están en el equipo.</b></h2>
+      <p>Tomados del firmware y la documentación del proyecto, no de una ficha comercial.</p>
     </div>
-    <div class="spec-grid">
-      <div class="spec-card">
-        <h3>Radar C1001</h3>
+    <div class="specs">
+      <div class="spec">
+        <h3>Radar</h3>
         <dl>
           <dt>Frecuencia</dt><dd>60 GHz (mmWave)</dd>
-          <dt>Interfaz</dt><dd>UART2 · 115 200 baudios, 8N1 (RX16/TX17)</dd>
-          <dt>Modos</dt><dd>FALL (caídas) / SLEEP (respiración y pulso)</dd>
-          <dt>Sensibilidad de caída</dt><dd>Configurable, escala 0–3</dd>
-          <dt>Altura de instalación</dt><dd>Configurable (referencia: 2,70 m)</dd>
+          <dt>Interfaz</dt><dd>UART2 · 115 200 bd, 8N1</dd>
+          <dt>Modos</dt><dd>Caídas / Descanso</dd>
+          <dt>Sensibilidad de caída</dt><dd>Escala 0–3</dd>
+          <dt>Altura de instalación</dt><dd>Configurable (ref. 2,70 m)</dd>
         </dl>
       </div>
-      <div class="spec-card">
-        <h3>Procesamiento — ESP32 DevKit</h3>
+      <div class="spec">
+        <h3>Procesamiento</h3>
         <dl>
-          <dt>Aprovisionamiento</dt><dd>Portal cautivo WiFi + botón BOOT (GPIO0)</dd>
-          <dt>Transporte</dt><dd>REST sobre HTTPS a Firebase Realtime Database</dd>
-          <dt>Alimentación</dt><dd>USB 5 V (estándar del DevKit)</dd>
+          <dt>Controlador</dt><dd>ESP32 DevKit</dd>
+          <dt>Configuración WiFi</dt><dd>Portal cautivo + botón físico</dd>
+          <dt>Envío de datos</dt><dd>REST sobre HTTPS</dd>
+          <dt>Alimentación</dt><dd>USB 5 V</dd>
         </dl>
       </div>
-      <div class="spec-card">
-        <h3>Frecuencia de comunicación</h3>
-        <dl>
-          <dt>Lectura de radar</dt><dd>Cada 2 segundos</dd>
-          <dt>Historial</dt><dd>Cada 30 segundos</dd>
-          <dt>Comandos remotos</dt><dd>Verificación cada 4 segundos</dd>
-        </dl>
-      </div>
-      <div class="spec-card">
+      <div class="spec">
         <h3>Sensores ambientales</h3>
         <dl>
-          <dt>SHT40</dt><dd>Temperatura y humedad relativa, I²C</dd>
-          <dt>SGP40</dt><dd>Índice VOC compensado, I²C</dd>
-          <dt>Estado</dt><dd>Integrado</dd>
+          <dt>Temperatura y humedad</dt><dd>SHT40 · I²C</dd>
+          <dt>Calidad del aire</dt><dd>SGP40 · índice VOC</dd>
+          <dt>Muestreo del VOC</dt><dd>1 s</dd>
+          <dt>Publicación</dt><dd>Cada 20 s</dd>
+        </dl>
+      </div>
+      <div class="spec">
+        <h3>Frecuencia de actualización</h3>
+        <dl>
+          <dt>Lectura del radar</dt><dd>Cada 2 s</dd>
+          <dt>Histórico</dt><dd>Cada 30 s</dd>
+          <dt>Órdenes desde la web</dt><dd>Cada 4 s</dd>
         </dl>
       </div>
     </div>
-    <p class="spec-note">El C1001 es un sensor de monitoreo, no un dispositivo médico certificado. Las lecturas de frecuencia cardíaca y respiratoria son estimaciones del sensor, pensadas como apoyo a la supervisión y no como diagnóstico clínico.</p>
+    <p class="spec-nota">El C1001 es un sensor de monitoreo, no un dispositivo médico certificado. La frecuencia cardíaca y respiratoria son estimaciones del sensor, pensadas como apoyo para estar al tanto — no son un diagnóstico.</p>
   </div>
 </section>
 
-<section class="section section-light">
-  <div class="cta-final">
+<section class="deep cierre">
+  <div class="wrap cierre-in">
+    <span class="eyebrow">Empezá hoy</span>
     <h2>Tecnología pensada para <b>acompañar la vida diaria.</b></h2>
-    <p>Sumá una forma de monitoreo no invasiva: creá una cuenta y empezá a ver el estado de tu familiar desde cualquier navegador.</p>
-    <div class="hero-ctas">
-      <a class="btn-cta primary" href="registro.html">Crear cuenta</a>
+    <p>Creá tu cuenta, conectá el equipo a tu WiFi y empezá a ver cómo está tu familiar desde cualquier navegador.</p>
+    <div class="cierre-links">
+      <a class="btn btn-cta" href="registro.html">Crear cuenta</a>
+      <a class="btn btn-ghost-deep" href="simulador.html">Explorar el gemelo digital</a>
     </div>
-    <a class="cta-sim" href="simulador.html">Explorar el gemelo digital interactivo →</a>
   </div>
 </section>
 
 </main>
 
 <footer>
-  <div class="foot-inner">
-    <div class="foot-brand">
-      <span class="brand-mini"><span class="dot" aria-hidden="true"></span> C1001</span>
-      <p>Radar que detecta presencia y caídas, y sensores que miden el ambiente — para que estés al tanto de tu familiar sin cámaras. No es un dispositivo médico: lo que ves son estimaciones para ayudarte a cuidar mejor, no un diagnóstico.</p>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <span class="brand">
+          <span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/><path d="M8.5 15.5a5 5 0 0 1 7 0"/><path d="M5.5 12.5a9 9 0 0 1 13 0"/><path d="M2.5 9.5a13 13 0 0 1 19 0"/></svg></span>
+          C1001
+        </span>
+        <p>Monitoreo y asistencia con radar de ondas milimétricas y sensores ambientales, para acompañar a quien lo necesita sin invadir su espacio.</p>
+        <p class="foot-aviso">No es un dispositivo médico: lo que ves son estimaciones para ayudarte a cuidar mejor, no un diagnóstico.</p>
+      </div>
+      <nav class="foot-links" aria-label="Enlaces del sitio">
+        <a href="#capacidades">Qué detecta</a>
+        <a href="#arquitectura">Tecnología</a>
+        <a href="#como-funciona">Cómo funciona</a>
+        <a href="#especificaciones">Especificaciones</a>
+        <a href="simulador.html">Simulador</a>
+        <a href="login.html">Ingresar</a>
+        <a href="registro.html">Crear cuenta</a>
+      </nav>
     </div>
-    <nav class="foot-links" aria-label="Enlaces del sitio">
-      <a href="#arquitectura">Tecnología</a>
-      <a href="#como-funciona">Cómo funciona</a>
-      <a href="#especificaciones">Especificaciones</a>
-      <a href="simulador.html">Simulador</a>
-      <a href="login.html">Ingresar</a>
-      <a href="registro.html">Crear cuenta</a>
-    </nav>
+    <p class="foot-bottom">Proyecto académico de telecomunicaciones · C1001 + ESP32 + Firebase</p>
   </div>
-  <p class="foot-bottom">Proyecto académico de telecomunicaciones · C1001 + ESP32 + Firebase</p>
 </footer>
 
 <script>
@@ -384,8 +524,8 @@ footer{background:var(--white);border-top:1px solid var(--line);padding:40px 20p
   var panel = document.getElementById("navPanel");
   if (burger && panel){
     burger.addEventListener("click", function(){
-      var open = panel.hasAttribute("hidden");
-      if (open){ panel.removeAttribute("hidden"); burger.setAttribute("aria-expanded","true"); }
+      var cerrado = panel.hasAttribute("hidden");
+      if (cerrado){ panel.removeAttribute("hidden"); burger.setAttribute("aria-expanded","true"); }
       else { panel.setAttribute("hidden",""); burger.setAttribute("aria-expanded","false"); }
     });
     panel.querySelectorAll("a").forEach(function(a){
